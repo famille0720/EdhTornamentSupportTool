@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Edh-TornamentSupport</title>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --accent-color: #27ae60;
+      --final-color: #d35400;
+      --debug-color: #8e44ad;
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --border-color: #dddddd;
+      --highlight-bg: #e8f8f5;
+      --highlight-border: #27ae60;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding-bottom: 40px;
+    }
+
+    header {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      padding: 12px 16px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    header h1 { margin: 0; font-size: 1.0rem; font-weight: 600; }
+
+    /* トースト通知 */
+    #toast-container {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      z-index: 1000; display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none; width: 90%; max-width: 400px;
+    }
+    .toast {
+      background: rgba(44, 62, 80, 0.95); color: #fff; padding: 12px 16px;
+      border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: fadeInOut 5.5s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    /* ウィザードプログレスバー */
+    .wizard-bar {
+      display: flex; background: #fff; border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 45px; z-index: 99; box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .wizard-step {
+      flex: 1; padding: 10px 2px; text-align: center; font-size: 0.70rem; font-weight: bold;
+      color: #95a5a6; border-bottom: 3px solid transparent; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .wizard-step.active { color: var(--accent-color); border-bottom-color: var(--accent-color); background: #fcfcfc; }
+    .wizard-step .step-num { font-size: 0.85rem; margin-bottom: 2px; }
+
+    .container { padding: 12px; max-width: 800px; margin: 0 auto; }
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+
+    .card {
+      background: var(--card-bg); border-radius: 8px; padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border-color);
+    }
+
+    .card h2 {
+      margin-top: 0; font-size: 1rem; border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 6px; margin-bottom: 12px; color: var(--primary-color);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .card h2.final-header { border-bottom-color: var(--final-color); color: var(--final-color); }
+
+    textarea, input, select {
+      width: 100%; padding: 10px; border: 1px solid var(--border-color);
+      border-radius: 6px; font-size: 0.95rem; margin-bottom: 8px; background-color: #fff;
+    }
+
+    textarea:disabled, input:disabled, select:disabled, button:disabled {
+      background-color: #e9ecef !important; color: #6c757d !important; cursor: not-allowed !important;
+    }
+
+    .btn {
+      display: inline-block; width: 100%; padding: 12px;
+      background-color: var(--accent-color); color: white; border: none;
+      border-radius: 6px; font-size: 1rem; font-weight: bold; text-align: center; cursor: pointer;
+    }
+    .btn-final { background-color: var(--final-color); }
+    .btn-secondary { background-color: #7f8c8d; }
+    .btn-danger { background-color: #e74c3c; }
+    .btn-warning { background-color: #f39c12; color: #fff; }
+    .btn-debug { background-color: var(--debug-color); }
+    .btn-sm { padding: 6px 10px; font-size: 0.8rem; width: auto; }
+    .flex-row { display: flex; gap: 8px; align-items: center; }
+
+    .nav-buttons { display: flex; gap: 8px; margin-top: 16px; }
+
+    .player-count-badge { background: var(--primary-color); color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { padding: 8px 4px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    th { background-color: #f8f9fa; color: #2c3e50; font-weight: 600; }
+    th.final-th { background-color: #fdf2e9; color: var(--final-color); }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+
+    .match-table-card { border-left: 4px solid var(--primary-color); margin-bottom: 12px; padding: 10px 12px; }
+    .match-table-card.final-match { border-left-color: var(--final-color); background-color: #fffaf5; }
+    .match-table-header { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; color: var(--primary-color); }
+    
+    .player-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; }
+    .player-row:last-child { border-bottom: none; }
+    .player-name-label { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+    .player-stats-sub { font-size: 0.75rem; color: #666; margin-left: 6px; font-weight: normal; background: #f1f3f5; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+    .rank-select { width: 130px; margin-bottom: 0; padding: 6px; font-size: 0.85rem; }
+
+    .top-4-row { background-color: var(--highlight-bg); }
+    .top-4-row td:first-child { border-left: 3px solid var(--highlight-border); font-weight: bold; }
+    .badge-top4 { background-color: var(--accent-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 4px; }
+    .badge-winner { background-color: var(--final-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; margin-left: 4px; }
+    .badge-locked { background-color: #e74c3c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 6px; }
+
+    .round-selector { display: flex; gap: 4px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+    .round-pill { flex: 1; min-width: 45px; padding: 6px 4px; background: #e2e8f0; border-radius: 6px; text-align: center; font-size: 0.75rem; font-weight: 600; color: #4a5568; cursor: pointer; white-space: nowrap; }
+    .round-pill.active { background: var(--primary-color); color: #ffffff; }
+    .round-pill:disabled, .round-pill.disabled { background: #e9ecef !important; color: #6c757d !important; cursor: not-allowed !important; opacity: 0.6; }
+
+    .info-box { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 8px 12px; font-size: 0.8rem; color: #2b6cb0; margin-bottom: 12px; border-radius: 0 4px 4px 0; }
+    .info-box.final-info { background: #fdf2e9; border-left-color: var(--final-color); color: #a04000; }
+    .info-box.debug-info { background: #f3e5f5; border-left-color: var(--debug-color); color: #4a148c; }
+    .info-box.warn-info { background: #fef9e7; border-left-color: #f39c12; color: #7d6608; }
+
+    /* 楕円型のシンプルなトグルスイッチ用スタイル */
+    .toggle-switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #faf5fc;
+      border: 1px solid #e1bee7;
+      padding: 10px 14px;
+      border-radius: 8px;
+    }
+    .toggle-label {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #4a148c;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+    }
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--debug-color);
+    }
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .debug-only { display: none; }
+    .debug-mode .debug-only { display: block; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-container"></div>
+
+  <header>
+    <h1>Edh-TornamentSupport(v0.1)</h1>
+  </header>
+
+  <!-- ステップ・ウィザードバー -->
+  <div class="wizard-bar">
+    <div class="wizard-step" id="step-btn-1" onclick="handleWizardStepClick(1)">
+      <span class="step-num">①</span><span>受付</span>
+    </div>
+    <div class="wizard-step" id="step-btn-2" onclick="handleWizardStepClick(2)">
+      <span class="step-num">②</span><span>対戦卓</span>
+    </div>
+    <div class="wizard-step" id="step-btn-3" onclick="handleWizardStepClick(3)">
+      <span class="step-num">③</span><span>成績</span>
+    </div>
+    <div class="wizard-step" id="step-btn-4" onclick="handleWizardStepClick(4)">
+      <span class="step-num">④</span><span>順位表</span>
+    </div>
+    <div class="wizard-step" id="step-btn-5" onclick="handleWizardStepClick(5)">
+      <span class="step-num">⑤</span><span>管理</span>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ① 受付・登録ステップ -->
+    <div id="step-1" class="step-content">
+      <div class="card">
+        <h2>
+          <span>① 受付・プレイヤー登録 <span id="registration-lock-badge"></span></span>
+          <span class="player-count-badge" id="player-count">0 / 64名</span>
+        </h2>
+
+        <div id="registration-lock-info"></div>
+
+        <!-- デバッグモードONの場合のみ受付タブにサンプルプレイヤー追加エリアを表示 -->
+        <div class="debug-only" style="background: #f3e5f5; border: 1px dashed var(--debug-color); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px; color: var(--debug-color);">🛠️ デバッグ：テスト用サンプルプレイヤー追加</label>
+          <div class="flex-row">
+            <input type="number" id="sample-count-input" value="20" min="3" max="64" style="margin-bottom:0; width:80px;">
+            <button class="btn btn-debug btn-sm" style="flex:1; padding: 10px;" id="btn-debug-sample" onclick="loadSamplePlayers()">サンプルプレイヤーを一括追加</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px;">予選ラウンド数の設定:</label>
+          <select id="total-rounds-select" onchange="changeTotalRounds(this.value)">
+            <option value="1">予選 1ラウンド</option>
+            <option value="2">予選 2ラウンド</option>
+            <option value="3" selected>予選 3ラウンド</option>
+            <option value="4">予選 4ラウンド</option>
+            <option value="5">予選 5ラウンド</option>
+          </select>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+        <div id="registration-input-section">
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px;">参加プレイヤーの追加:</label>
+          <div class="flex-row" style="margin-bottom: 12px;">
+            <input type="text" id="single-player-input" placeholder="プレイヤー名（1名ずつ追加）" style="margin-bottom:0;" onkeypress="handleSingleInputKeyPress(event)">
+            <button class="btn btn-secondary btn-sm" style="width: 100px; padding: 10px;" onclick="addSinglePlayer()">追加</button>
+          </div>
+
+          <details style="margin-bottom: 16px; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #ddd;">
+            <summary style="font-size:0.85rem; font-weight:bold; cursor:pointer; color:#555;">📋 複数名をまとめて一括登録</summary>
+            <div style="margin-top: 8px;">
+              <textarea id="player-input-names" rows="4" placeholder="プレイヤー1&#10;プレイヤー2&#10;プレイヤー3&#10;..." style="margin-bottom:6px;"></textarea>
+              <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="addBulkPlayers()">一括リストを追加</button>
+            </div>
+          </details>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="font-weight: bold; font-size:0.9rem;">現在の参加登録リスト:</label>
+            <button class="btn btn-danger btn-sm" id="btn-clear-players" onclick="clearPlayerList()" style="display:none;">全員削除</button>
+          </div>
+          <div id="registered-players-list" style="max-height: 250px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px;"></div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+        <div>
+          <button class="btn" id="btn-complete-registration" onclick="completeRegistration()">✅ 参加者を確定して第1ラウンドへ進む ➔</button>
+          <button class="btn btn-secondary" id="btn-unlock-registration" onclick="unlockRegistration()" style="display:none;">🔓 受付・登録のロックを解除する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 対戦卓生成ステップ -->
+    <div id="step-2" class="step-content">
+      <div class="card">
+        <h2 id="matching-card-title">② 対戦卓生成</h2>
+        <div class="round-selector" id="matching-round-selector"></div>
+        
+        <div id="matching-top-action-container" style="margin-bottom: 12px;"></div>
+        <div id="matching-display-container"></div>
+        <div id="matching-bottom-action-container" style="margin-top: 16px;"></div>
+
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(1, true)">⬅️ 受付に戻る</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 成績入力ステップ -->
+    <div id="step-3" class="step-content">
+      <div class="card">
+        <h2 id="results-card-title">③ 成績入力</h2>
+        <div class="round-selector" id="results-round-selector"></div>
+        <div class="info-box" id="results-info-box">各卓の着順を選択してください。</div>
+
+        <div class="debug-only" style="margin-bottom: 12px;">
+          <button class="btn btn-debug btn-sm" style="width:100%;" id="btn-debug-random-results" onclick="fillRandomResults()">
+            🛠️ デバッグ：このラウンドの全卓にランダム成績を一括入力
+          </button>
+        </div>
+
+        <div id="results-input-container"></div>
+        <div id="results-bottom-action-container" style="margin-top: 16px;"></div>
+
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(2, true)">⬅️ 対戦卓に戻る</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 結果確認ステップ -->
+    <div id="step-4" class="step-content">
+      <div class="card">
+        <h2>④ 大会順位表</h2>
+
+        <div class="round-selector" id="standings-round-selector"></div>
+        <div class="info-box" id="standings-info-box"></div>
+
+        <div style="overflow-x: auto; margin-bottom: 16px;">
+          <table>
+            <thead><tr id="standings-header-row"></tr></thead>
+            <tbody id="standings-table-body"></tbody>
+          </table>
+        </div>
+
+        <div id="next-round-action-container" style="margin-bottom: 12px;"></div>
+
+        <div class="nav-buttons">
+          <button class="btn btn-secondary" onclick="goToStep(3, true)">⬅️ 成績入力に戻る</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 管理・データ操作ステップ -->
+    <div id="step-5" class="step-content">
+      <div class="card">
+        <h2>🛠️ 大会データ・バックアップ操作</h2>
+        <div class="info-box">大会データのJSONバックアップ（出力・復元）や、全データのリセットを行えます。</div>
+        
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px;">JSONバックアップ出力:</label>
+          <button class="btn btn-secondary btn-sm" style="width:100%; padding: 12px;" onclick="downloadBackupJSON()">📥 JSONバックアップを出力</button>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px;">JSONバックアップ復元 (リストア):</label>
+          <input type="file" id="json-file-input" accept=".json" style="margin-bottom:6px; background:#f8f9fa;">
+          <button class="btn btn-warning btn-sm" style="width:100%; padding: 12px;" onclick="restoreBackupJSON()">📤 選択したJSONファイルから復元</button>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+
+        <div>
+          <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px; color:var(--danger-color, #e74c3c);">データ初期化:</label>
+          <button class="btn btn-danger btn-sm" style="width:100%; padding: 12px;" onclick="clearAllData()">🗑️ 全データをリセット</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>⚙️ デバッグ・ツール設定</h2>
+        <div class="info-box debug-info">テスト用の機能やランダム成績補完ボタンの表示を切り替えます。</div>
+        <div class="toggle-switch-row">
+          <span class="toggle-label">🛠️ デバッグモード</span>
+          <label class="switch">
+            <input type="checkbox" id="debug-toggle-input" onchange="toggleDebugMode()">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const state = {
+    currentStep: 1,
+    currentRound: 1,
+    qualifyingRounds: 3,
+    players: [],
+    rounds: {},
+    finalRound: null,
+    isRegistrationLocked: false,
+    currentStandingsTab: "latest",
+    debugMode: false,
+    randomSeedMap: {}
+  };
+
+  const POINTS_MAP = { 1: 4, 2: 3, 3: 2, 4: 1 };
+
+  /* トースト通知 */
+  function showToast(msg) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = msg;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5500);
+  }
+
+  function saveData() { 
+    localStorage.setItem('edh_app_state_v9', JSON.stringify(state)); 
+  }
+
+  function loadData() {
+    const saved = localStorage.getItem('edh_app_state_v9');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        state.currentStep = parsed.currentStep || 1;
+        state.currentRound = parsed.currentRound || 1;
+        state.qualifyingRounds = parsed.qualifyingRounds || 3;
+        state.players = parsed.players || [];
+        state.rounds = parsed.rounds || {};
+        state.finalRound = parsed.finalRound || null;
+        state.isRegistrationLocked = parsed.isRegistrationLocked || false;
+        state.debugMode = parsed.debugMode || false;
+        state.currentStandingsTab = parsed.currentStandingsTab || "latest";
+        state.randomSeedMap = parsed.randomSeedMap || {};
+      } catch (e) {}
+    }
+    document.getElementById('total-rounds-select').value = state.qualifyingRounds;
+
+    applyDebugModeUI();
+    updateRegistrationLockUI();
+    renderPlayerList();
+    goToStep(state.currentStep, false);
+  }
+
+  /* --- ウィザードステップ制御 --- */
+
+  function handleWizardStepClick(stepNum) {
+    goToStep(stepNum, true);
+  }
+
+  function goToStep(stepNum, scrollToTop = false) {
+    state.currentStep = stepNum;
+    saveData();
+
+    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+
+    document.getElementById(`step-${stepNum}`).classList.add('active');
+    document.getElementById(`step-btn-${stepNum}`).classList.add('active');
+
+    if (scrollToTop) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    renderRoundSelectors();
+    if (stepNum === 2) renderMatchingStep();
+    if (stepNum === 3) renderResultsStep();
+    if (stepNum === 4) renderStandingsStep();
+  }
+
+  function toggleDebugMode() {
+    const checkbox = document.getElementById('debug-toggle-input');
+    state.debugMode = checkbox.checked;
+    saveData();
+    applyDebugModeUI();
+  }
+
+  function applyDebugModeUI() {
+    const checkbox = document.getElementById('debug-toggle-input');
+    if (checkbox) checkbox.checked = state.debugMode;
+
+    if (state.debugMode) {
+      document.body.classList.add('debug-mode');
+    } else {
+      document.body.classList.remove('debug-mode');
+    }
+  }
+
+  function changeTotalRounds(val) {
+    state.qualifyingRounds = parseInt(val);
+    saveData();
+    renderRoundSelectors();
+  }
+
+  /* --- ① 受付・プレイヤー登録機能 --- */
+
+  function addSinglePlayer() {
+    if (state.isRegistrationLocked) return;
+    const input = document.getElementById('single-player-input');
+    const name = input.value.trim();
+    if (!name) return;
+
+    if (state.players.length >= 64) { alert("参加者は最大64名までです。"); return; }
+
+    const nextId = state.players.length > 0 ? Math.max(...state.players.map(p => p.id)) + 1 : 1;
+    state.players.push({ id: nextId, name: name });
+    input.value = "";
+    saveData();
+    renderPlayerList();
+  }
+
+  function handleSingleInputKeyPress(e) {
+    if (e.key === 'Enter') { e.preventDefault(); addSinglePlayer(); }
+  }
+
+  function addBulkPlayers() {
+    if (state.isRegistrationLocked) return;
+    const textarea = document.getElementById('player-input-names');
+    const text = textarea.value.trim();
+    if (!text) return;
+
+    const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+    let nextId = state.players.length > 0 ? Math.max(...state.players.map(p => p.id)) + 1 : 1;
+
+    for (const name of names) {
+      if (state.players.length >= 64) { alert("最大64名に達したため中断しました。"); break; }
+      state.players.push({ id: nextId++, name: name });
+    }
+
+    textarea.value = "";
+    saveData();
+    renderPlayerList();
+  }
+
+  function removePlayer(id) {
+    if (state.isRegistrationLocked) return;
+    state.players = state.players.filter(p => p.id !== id);
+    saveData();
+    renderPlayerList();
+  }
+
+  function clearPlayerList() {
+    if (state.isRegistrationLocked) return;
+    if (confirm("登録中のプレイヤーを全員削除しますか？")) {
+      state.players = []; state.randomSeedMap = {}; saveData(); renderPlayerList();
+    }
+  }
+
+  function renderPlayerList() {
+    document.getElementById('player-count').innerText = `${state.players.length} / 64名`;
+    const container = document.getElementById('registered-players-list');
+    const btnClear = document.getElementById('btn-clear-players');
+
+    if (state.players.length === 0) {
+      container.innerHTML = '<p style="color:#888; text-align:center; padding:12px; margin:0;">登録されているプレイヤーがいません</p>';
+      if (btnClear) btnClear.style.display = "none";
+      return;
+    }
+
+    if (btnClear) btnClear.style.display = state.isRegistrationLocked ? "none" : "block";
+
+    let html = '<table><thead><tr><th>ID</th><th>名前</th><th class="text-right" style="width:60px;">操作</th></tr></thead><tbody>';
+    state.players.forEach(p => {
+      html += `<tr>
+        <td>P${p.id}</td>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td class="text-right">${!state.isRegistrationLocked ? `<button class="btn btn-danger btn-sm" onclick="removePlayer(${p.id})">🗑️</button>` : '-'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>'; 
+    container.innerHTML = html;
+  }
+
+  function completeRegistration() {
+    if (state.players.length < 3) { alert("大会の開催には3名以上の参加者が必要です。"); return; }
+    if (state.players.length > 64) { alert("参加者は最大64名までです。"); return; }
+
+    state.qualifyingRounds = parseInt(document.getElementById('total-rounds-select').value);
+    state.isRegistrationLocked = true;
+    state.currentRound = 1;
+
+    state.randomSeedMap = {};
+    state.players.forEach(p => {
+      state.randomSeedMap[p.id] = Math.random();
+    });
+
+    saveData();
+    updateRegistrationLockUI();
+    renderPlayerList();
+    showToast("参加者を確定しました。対戦卓生成へ進みます。");
+    goToStep(2, true);
+  }
+
+  function unlockRegistration() {
+    if (confirm("登録のロックを解除しますか？\n※対戦卓生成後に人数を変更すると不整合が起きる可能性があります。")) {
+      state.isRegistrationLocked = false;
+      saveData();
+      updateRegistrationLockUI();
+      renderPlayerList();
+    }
+  }
+
+  function updateRegistrationLockUI() {
+    const badge = document.getElementById('registration-lock-badge');
+    const info = document.getElementById('registration-lock-info');
+    const btnComplete = document.getElementById('btn-complete-registration');
+    const btnUnlock = document.getElementById('btn-unlock-registration');
+    const selectRounds = document.getElementById('total-rounds-select');
+    const inputSection = document.getElementById('registration-input-section');
+
+    if (state.isRegistrationLocked) {
+      badge.innerHTML = `<span class="badge-locked">🔒 確定済み</span>`;
+      info.innerHTML = `<div class="info-box warn-info"><b>🔒 大会受付は確定されています。</b></div>`;
+      btnComplete.style.display = "none";
+      btnUnlock.style.display = "block";
+      selectRounds.disabled = true;
+      inputSection.style.display = "none";
+    } else {
+      badge.innerHTML = "";
+      info.innerHTML = `<div class="info-box">予選ラウンド数を選択し, 参加者を追加して確定してください。</div>`;
+      btnComplete.style.display = "block";
+      btnUnlock.style.display = "none";
+      selectRounds.disabled = false;
+      inputSection.style.display = "block";
+    }
+  }
+
+  /* --- 判定ヘルパー --- */
+  function hasRoundMatching(roundKey) {
+    if (roundKey === 'final') {
+      return state.finalRound && state.finalRound.playerIds && state.finalRound.playerIds.length > 0;
+    }
+    const r = parseInt(roundKey);
+    const roundData = state.rounds[r];
+    return roundData && roundData.tables && roundData.tables.length > 0;
+  }
+
+  function isRoundResultsFinished(roundKey) {
+    if (roundKey === 'final') {
+      return state.finalRound && state.finalRound.resultsLocked === true;
+    }
+    const r = parseInt(roundKey);
+    const roundData = state.rounds[r];
+    return roundData && roundData.resultsLocked === true;
+  }
+
+  function areAllQualifiersFinished() {
+    for (let r = 1; r <= state.qualifyingRounds; r++) {
+      if (!isRoundResultsFinished(r)) return false;
+    }
+    return true;
+  }
+
+  /* --- ラウンド切り替えセレクター --- */
+
+  function renderRoundSelectors() {
+    const mSelector = document.getElementById('matching-round-selector');
+    const rSelector = document.getElementById('results-round-selector');
+    const sSelector = document.getElementById('standings-round-selector');
+
+    let mHtml = ""; let rHtml = ""; let sHtml = "";
+
+    sHtml += `<div class="round-pill ${state.currentStandingsTab === 'latest' ? 'active' : ''}" onclick="switchStandingsTab('latest')">最新成績</div>`;
+
+    for (let i = 1; i <= state.qualifyingRounds; i++) {
+      const activeM = state.currentRound === i ? 'active' : '';
+      mHtml += `<div class="round-pill ${activeM}" onclick="setCurrentRound(${i}, 2)">予選R${i}</div>`;
+
+      const hasMatch = hasRoundMatching(i);
+      const activeR = state.currentRound === i ? 'active' : '';
+      const rDisabledClass = !hasMatch ? 'disabled' : '';
+      const rClickAction = hasMatch ? `onclick="setCurrentRound(${i}, 3)"` : '';
+      rHtml += `<div class="round-pill ${activeR} ${rDisabledClass}" ${rClickAction}>予選R${i}</div>`;
+
+      const isFinished = isRoundResultsFinished(i);
+      const activeS = state.currentStandingsTab === String(i) ? 'active' : '';
+      const disabledClass = !isFinished ? 'disabled' : '';
+      const clickAction = isFinished ? `onclick="switchStandingsTab('${i}')"` : '';
+      sHtml += `<div class="round-pill ${activeS} ${disabledClass}" ${clickAction}>R${i}時点</div>`;
+    }
+
+    const finalHasMatch = hasRoundMatching('final');
+    const finalActiveM = state.currentRound === 'final' ? 'active' : '';
+    mHtml += `<div class="round-pill ${finalActiveM}" onclick="setCurrentRound('final', 2)">🏆 決勝卓</div>`;
+
+    const finalActiveR = state.currentRound === 'final' ? 'active' : '';
+    const finalRDisabledClass = !finalHasMatch ? 'disabled' : '';
+    const finalRClickAction = finalHasMatch ? `onclick="setCurrentRound('final', 3)"` : '';
+    rHtml += `<div class="round-pill ${finalActiveR} ${finalRDisabledClass}" ${finalRClickAction}>🏆 決勝卓</div>`;
+
+    const isFinalFinished = isRoundResultsFinished('final');
+    const finalActiveTab = state.currentStandingsTab === 'final' ? 'active' : '';
+    const finalDisabledClass = !isFinalFinished ? 'disabled' : '';
+    const finalClickAction = isFinalFinished ? `onclick="switchStandingsTab('final')"` : '';
+    sHtml += `<div class="round-pill ${finalActiveTab} ${finalDisabledClass}" ${finalClickAction}>🏆 最終結果</div>`;
+
+    mSelector.innerHTML = mHtml;
+    rSelector.innerHTML = rHtml;
+    sSelector.innerHTML = sHtml;
+  }
+
+  function setCurrentRound(r, stepTarget) {
+    state.currentRound = r;
+    saveData();
+    renderRoundSelectors();
+    if (stepTarget === 2) renderMatchingStep();
+    if (stepTarget === 3) renderResultsStep();
+  }
+
+  /* --- ② 対戦卓生成ステップ --- */
+
+  function hasAnyResultsRecorded(roundKey) {
+    if (roundKey === 'final') {
+      return state.finalRound && state.finalRound.ranks && Object.keys(state.finalRound.ranks).length > 0;
+    }
+    const r = parseInt(roundKey);
+    const roundData = state.rounds[r];
+    if (!roundData || !roundData.tables) return false;
+    return roundData.tables.some(t => t.ranks && Object.keys(t.ranks).length > 0);
+  }
+
+  function renderMatchingStep() {
+    const key = state.currentRound;
+    const topAction = document.getElementById('matching-top-action-container');
+    const bottomAction = document.getElementById('matching-bottom-action-container');
+    const display = document.getElementById('matching-display-container');
+    const cardTitle = document.getElementById('matching-card-title');
+
+    topAction.innerHTML = ""; bottomAction.innerHTML = "";
+
+    let statsMap = {};
+    if (key === 'final') {
+      const standings = calculateQualifyingStandings(state.qualifyingRounds);
+      standings.forEach(p => { statsMap[p.id] = { totalPts: p.totalPts, omwStr: p.omwStr }; });
+    } else {
+      const r = parseInt(key);
+      if (r > 1) {
+        const standings = calculateQualifyingStandings(r - 1);
+        standings.forEach(p => { statsMap[p.id] = { totalPts: p.totalPts, omwStr: p.omwStr }; });
+      } else {
+        state.players.forEach(p => { statsMap[p.id] = { totalPts: 0, omwStr: "33.3%" }; });
+      }
+    }
+
+    if (key === 'final') {
+      cardTitle.innerText = "② 🏆 決勝卓（Top 4）対戦卓";
+      cardTitle.className = "final-header";
+
+      const existingFinal = state.finalRound;
+      const isLocked = existingFinal && existingFinal.locked;
+
+      if (!existingFinal) {
+        topAction.innerHTML = `<button class="btn btn-final" onclick="generateFinalPairing()">🏆 予選上位4名で決勝卓を生成</button>`;
+        display.innerHTML = `<p style="color:#888; text-align:center;">予選終了後、「決勝卓を生成」を押してください。</p>`;
+        return;
+      }
+
+      if (isLocked) {
+        bottomAction.innerHTML = `<div class="flex-row">
+          <button class="btn btn-secondary" style="flex:1;" disabled>🔒 決勝卓マッチング確定済み</button>
+          <button class="btn btn-warning" onclick="unlockMatch('final')" style="width:140px;">🔓 ロック解除</button>
+        </div>`;
+      } else {
+        bottomAction.innerHTML = `<button class="btn btn-final" onclick="confirmMatchAndProceed('final')">🔒 決勝卓を確定して成績入力へ進む ➔</button>`;
+      }
+
+      let html = `<div class="card match-table-card final-match">
+        <div class="match-table-header">🏆 決勝卓 (予選1位〜4位) ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</div>`;
+      existingFinal.playerIds.forEach((pId, idx) => {
+        const p = state.players.find(x => x.id === pId);
+        const st = statsMap[pId] || { totalPts: 0, omwStr: "33.3%" };
+        html += `<div class="player-row">
+          <span class="player-name-label">予選${idx + 1}位 - P${pId}: ${escapeHtml(p ? p.name : '')}</span>
+          <span class="player-stats-sub">${st.totalPts}pt / OMW: ${st.omwStr}</span>
+        </div>`;
+      });
+      html += `</div>`;
+      display.innerHTML = html;
+
+    } else {
+      const r = parseInt(key);
+      cardTitle.innerText = `② 予選第 ${r} ラウンド 対戦卓生成`;
+      cardTitle.className = "";
+
+      const roundData = state.rounds[r];
+      const hasTables = roundData && roundData.tables && roundData.tables.length > 0;
+      const isLocked = roundData && roundData.locked;
+
+      if (!hasTables) {
+        topAction.innerHTML = `<button class="btn" onclick="generateQualifyingPairings(${r})">🎲 予選第${r}ラウンドのマッチングを自動生成</button>`;
+        display.innerHTML = `<p style="color:#888; text-align:center;">ボタンを押してマッチングを生成してください。</p>`;
+        return;
+      }
+
+      if (isLocked) {
+        bottomAction.innerHTML = `<div class="flex-row">
+          <button class="btn btn-secondary" style="flex:1;" disabled>🔒 予選R${r} マッチング確定済み</button>
+          <button class="btn btn-warning" onclick="unlockMatch(${r})" style="width:140px;">🔓 ロック解除</button>
+        </div>`;
+      } else {
+        if (r === 1) {
+          topAction.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="generateQualifyingPairings(${r})">予選R${r} 再抽選</button>`;
+        }
+        bottomAction.innerHTML = `<button class="btn" onclick="confirmMatchAndProceed(${r})">🔒 マッチングを確定して成績入力へ進む ➔</button>`;
+      }
+
+      let html = "";
+      roundData.tables.forEach(t => {
+        html += `<div class="card match-table-card"><div class="match-table-header">第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</div>`;
+        t.playerIds.forEach(pId => {
+          const p = state.players.find(x => x.id === pId);
+          const st = statsMap[pId] || { totalPts: 0, omwStr: "33.3%" };
+          html += `<div class="player-row">
+            <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
+            <span class="player-stats-sub">${st.totalPts}pt / OMW: ${st.omwStr}</span>
+          </div>`;
+        });
+        html += `</div>`;
+      });
+      display.innerHTML = html;
+    }
+  }
+
+  function confirmMatchAndProceed(roundKey) {
+    if (roundKey === 'final') {
+      if (!state.finalRound) return;
+      state.finalRound.locked = true;
+    } else {
+      const r = parseInt(roundKey);
+      if (!state.rounds[r]) return;
+      state.rounds[r].locked = true;
+    }
+    saveData();
+    showToast("マッチングを確定しました。成績入力へ進みます。");
+    state.currentRound = roundKey;
+    goToStep(3, true);
+  }
+
+  function unlockMatch(roundKey) {
+    if (roundKey === 'final') {
+      if (!state.finalRound) return;
+      state.finalRound.locked = false;
+    } else {
+      const r = parseInt(roundKey);
+      if (!state.rounds[r]) return;
+      state.rounds[r].locked = false;
+    }
+    saveData();
+    renderMatchingStep();
+  }
+
+  function generateQualifyingPairings(roundNum) {
+    if (!state.isRegistrationLocked) {
+      alert("事前登録がまだ確定していません。ステップ①で確定してください。"); return;
+    }
+    if (roundNum > 1 && (!state.rounds[roundNum - 1] || !state.rounds[roundNum - 1].tables)) {
+      alert(`先に予選第${roundNum - 1}ラウンドのマッチングを行ってください。`); return;
+    }
+
+    if (hasAnyResultsRecorded(roundNum)) {
+      if (!confirm(`予選第${roundNum}ラウンドの成績がすでに入力されています。\n再抽選を行うと、入力済みの成績データは消去されますがよろしいですか？`)) {
+        return;
+      }
+    }
+
+    let playerPool = [];
+    if (roundNum === 1) {
+      playerPool = [...state.players.map(p => p.id)];
+      for (let i = playerPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [playerPool[i], playerPool[j]] = [playerPool[j], playerPool[i]];
+      }
+    } else {
+      playerPool = calculateQualifyingStandings(roundNum - 1).map(p => p.id);
+    }
+
+    const N = playerPool.length;
+    let num3s = 0; let num4s = 0;
+    const rem = N % 4;
+    if (rem === 0) { num4s = N / 4; num3s = 0; }
+    else if (rem === 3) { num4s = Math.floor(N / 4); num3s = 1; }
+    else if (rem === 2) { num4s = Math.floor(N / 4) - 1; num3s = 2; }
+    else if (rem === 1) { num4s = Math.floor(N / 4) - 2; num3s = 3; }
+    if (num4s < 0) { num4s = 0; num3s = Math.floor(N / 3); }
+
+    const tables = [];
+    let tableNo = 1; let poolIdx = 0;
+
+    for (let i = 0; i < num4s; i++) {
+      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 4), ranks: {} });
+      poolIdx += 4;
+    }
+    for (let i = 0; i < num3s; i++) {
+      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 3), ranks: {} });
+      poolIdx += 3;
+    }
+
+    state.rounds[roundNum] = { tables: tables, locked: false, resultsLocked: false };
+    saveData(); renderMatchingStep();
+  }
+
+  function generateFinalPairing() {
+    if (hasAnyResultsRecorded('final')) {
+      if (!confirm(`決勝卓の成績がすでに入力されています。\n再生成を行うと入力済みの成績データは消去されますがよろしいですか？`)) {
+        return;
+      }
+    }
+
+    const standings = calculateQualifyingStandings();
+    if (standings.length < 4) { alert("決勝卓を作るには最低4名の参加者が必要です。"); return; }
+    const top4 = standings.slice(0, 4).map(p => p.id);
+    state.finalRound = { playerIds: top4, ranks: {}, locked: false, resultsLocked: false };
+    saveData(); renderMatchingStep();
+  }
+
+  /* --- ③ 成績入力ステップ --- */
+
+  function renderResultsStep() {
+    const key = state.currentRound;
+    const container = document.getElementById('results-input-container');
+    const bottomAction = document.getElementById('results-bottom-action-container');
+    const cardTitle = document.getElementById('results-card-title');
+    const infoBox = document.getElementById('results-info-box');
+    const btnRandom = document.getElementById('btn-debug-random-results');
+
+    bottomAction.innerHTML = "";
+
+    if (!hasRoundMatching(key)) {
+      container.innerHTML = `<p style="color:#888; text-align:center; padding: 20px;">このラウンドのマッチングがまだ生成されていません。</p>`;
+      infoBox.className = "info-box";
+      infoBox.innerHTML = "対戦卓ステップでマッチングを生成してください。";
+      if (btnRandom) btnRandom.disabled = true;
+      return;
+    }
+
+    if (key === 'final') {
+      cardTitle.innerText = "③ 🏆 決勝卓 成績入力";
+      cardTitle.className = "final-header";
+      infoBox.className = "info-box final-info";
+
+      const t = state.finalRound;
+      const isLocked = t.resultsLocked || false;
+      if (btnRandom) btnRandom.disabled = isLocked;
+
+      if (isLocked) {
+        infoBox.innerHTML = "<b>🔒 決勝卓の成績は確定されています。</b>";
+        bottomAction.innerHTML = `<div class="flex-row">
+          <button class="btn btn-secondary" style="flex:1;" disabled>🔒 成績確定済み</button>
+          <button class="btn btn-warning" onclick="unlockResults('final')" style="width:140px;">🔓 成績を修正</button>
+        </div>`;
+      } else {
+        infoBox.innerHTML = "<b>決勝卓の順位を選択してください。（すべての卓の順位を選択すると確定ボタンが押せるようになります）</b>";
+        bottomAction.innerHTML = `<button class="btn btn-final" id="btn-complete-results" onclick="completeResultsAndProceed('final')">✅ 成績を確定して結果確認へ進む ➔</button>`;
+      }
+
+      let html = `<div class="card match-table-card final-match"><div class="match-table-header">🏆 決勝卓 ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</div>`;
+      t.playerIds.forEach(pId => {
+        const p = state.players.find(x => x.id === pId);
+        const currentRank = t.ranks[pId] || null;
+        
+        let optionsHtml = `<option value="" ${currentRank === null ? 'selected' : ''}>-- 選択 --</option>`;
+        for(let rank = 1; rank <= t.playerIds.length; rank++) {
+          optionsHtml += `<option value="${rank}" ${currentRank == rank ? 'selected' : ''}>${rank}位</option>`;
+        }
+
+        html += `<div class="player-row">
+          <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
+          <select class="rank-select" ${isLocked ? 'disabled' : ''} onchange="updateFinalRank(${pId}, this.value)">
+            ${optionsHtml}
+          </select>
+        </div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+
+    } else {
+      const r = parseInt(key);
+      cardTitle.innerText = `③ 予選第 ${r} ラウンド 成績入力`;
+      cardTitle.className = "";
+
+      const roundData = state.rounds[r];
+      const isLocked = roundData.resultsLocked || false;
+      if (btnRandom) btnRandom.disabled = isLocked;
+
+      if (isLocked) {
+        infoBox.className = "info-box warn-info";
+        infoBox.innerHTML = `<b>🔒 予選第 ${r} ラウンドの成績は確定されています。</b>`;
+        bottomAction.innerHTML = `<div class="flex-row">
+          <button class="btn btn-secondary" style="flex:1;" disabled>🔒 成績確定済み</button>
+          <button class="btn btn-warning" onclick="unlockResults(${r})" style="width:140px;">🔓 成績を修正</button>
+        </div>`;
+      } else {
+        infoBox.className = "info-box";
+        infoBox.innerHTML = "各卓の着順を選択してください。（1位:4pt / 2位:3pt / 3位:2pt / 4位:1pt ※未選択のコンボボックスがある場合、ボタンは非活性になります）";
+        bottomAction.innerHTML = `<button class="btn" id="btn-complete-results" onclick="completeResultsAndProceed(${r})">✅ 成績を確定して結果確認へ進む ➔</button>`;
+      }
+
+      let html = "";
+      roundData.tables.forEach((t, tIdx) => {
+        html += `<div class="card match-table-card"><div class="match-table-header">第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</div>`;
+        t.playerIds.forEach(pId => {
+          const p = state.players.find(x => x.id === pId);
+          const currentRank = t.ranks[pId] || null;
+          
+          let optionsHtml = `<option value="" ${currentRank === null ? 'selected' : ''}>-- 選択 --</option>`;
+          for(let rank = 1; rank <= t.playerIds.length; rank++) {
+            optionsHtml += `<option value="${rank}" ${currentRank == rank ? 'selected' : ''}>${rank}位 (${POINTS_MAP[rank]}pt)</option>`;
+          }
+
+          html += `<div class="player-row">
+            <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
+            <select class="rank-select" ${isLocked ? 'disabled' : ''} onchange="updateQualifyingRank(${r}, ${tIdx}, ${pId}, this.value)">
+              ${optionsHtml}
+            </select>
+          </div>`;
+        });
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    updateResultsSubmitButtonState();
+  }
+
+  function updateResultsSubmitButtonState() {
+    const btn = document.getElementById('btn-complete-results');
+    if (!btn) return;
+
+    const key = state.currentRound;
+    let totalExpected = 0;
+    let totalFilled = 0;
+
+    if (key === 'final') {
+      const t = state.finalRound;
+      if (t) {
+        totalExpected = t.playerIds.length;
+        totalFilled = Object.keys(t.ranks).length;
+      }
+    } else {
+      const r = parseInt(key);
+      const roundData = state.rounds[r];
+      if (roundData && roundData.tables) {
+        roundData.tables.forEach(t => {
+          totalExpected += t.playerIds.length;
+          totalFilled += Object.keys(t.ranks).length;
+        });
+      }
+    }
+
+    if (totalExpected === 0 || totalFilled < totalExpected) {
+      btn.disabled = true;
+    } else {
+      btn.disabled = false;
+    }
+  }
+
+  function completeResultsAndProceed(roundKey) {
+    if (roundKey === 'final') {
+      const t = state.finalRound;
+      if (!t) return;
+      t.resultsLocked = true;
+      showToast("決勝卓の成績を確定しました。最終結果を表示します。");
+      state.currentStandingsTab = 'final'; 
+    } else {
+      const r = parseInt(roundKey);
+      const roundData = state.rounds[r];
+      if (!roundData) return;
+
+      roundData.resultsLocked = true;
+      showToast(`予選第${r}ラウンドの成績を確定しました。順位表を表示します。`);
+      state.currentStandingsTab = String(r); 
+    }
+    saveData();
+    goToStep(4, true);
+  }
+
+  function unlockResults(roundKey) {
+    if (roundKey === 'final') {
+      if (!state.finalRound) return;
+      state.finalRound.resultsLocked = false;
+    } else {
+      const r = parseInt(roundKey);
+      if (!state.rounds[r]) return;
+      state.rounds[r].resultsLocked = false;
+    }
+    saveData();
+    renderResultsStep();
+  }
+
+  function fillRandomResults() {
+    const key = state.currentRound;
+    if (key === 'final') {
+      if (!state.finalRound || state.finalRound.resultsLocked) return;
+      const count = state.finalRound.playerIds.length;
+      const ranks = Array.from({length: count}, (_, i) => i + 1);
+      for (let i = ranks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [ranks[i], ranks[j]] = [ranks[j], ranks[i]];
+      }
+      state.finalRound.playerIds.forEach((pId, idx) => { state.finalRound.ranks[pId] = ranks[idx]; });
+    } else {
+      const r = parseInt(key);
+      const roundData = state.rounds[r];
+      if (!roundData || !roundData.tables || roundData.resultsLocked) return;
+
+      roundData.tables.forEach(t => {
+        const count = t.playerIds.length;
+        const ranks = Array.from({length: count}, (_, i) => i + 1);
+        for (let i = ranks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [ranks[i], ranks[j]] = [ranks[j], ranks[i]];
+        }
+        t.playerIds.forEach((pId, idx) => { t.ranks[pId] = ranks[idx]; });
+      });
+    }
+    saveData(); renderResultsStep();
+  }
+
+  function updateQualifyingRank(roundNum, tableIdx, playerId, rankVal) {
+    if (rankVal === "") delete state.rounds[roundNum].tables[tableIdx].ranks[playerId];
+    else state.rounds[roundNum].tables[tableIdx].ranks[playerId] = parseInt(rankVal);
+    saveData();
+    updateResultsSubmitButtonState();
+  }
+
+  function updateFinalRank(playerId, rankVal) {
+    if (!state.finalRound) return;
+    if (rankVal === "") delete state.finalRound.ranks[playerId];
+    else state.finalRound.ranks[playerId] = parseInt(rankVal);
+    saveData();
+    updateResultsSubmitButtonState();
+  }
+
+  /* --- ④ 結果確認・順位表 ＆ 次ラウンド導線 --- */
+
+  function switchStandingsTab(tabKey) {
+    state.currentStandingsTab = tabKey;
+    saveData();
+    renderRoundSelectors();
+    renderStandingsStep();
+  }
+
+  function renderStandingsStep() {
+    const mode = state.currentStandingsTab;
+    const headerRow = document.getElementById('standings-header-row');
+    const tbody = document.getElementById('standings-table-body');
+    const infoBox = document.getElementById('standings-info-box');
+    const nextActionContainer = document.getElementById('next-round-action-container');
+
+    let targetRound = state.qualifyingRounds;
+    let showFinalCol = true;
+    let isQualifyingFinished = areAllQualifiersFinished(); 
+
+    if (mode === 'latest') {
+      infoBox.className = "info-box";
+      infoBox.innerHTML = `<b>【最新成績】</b> 予選のタイブレーカー（OMW% / GW% / OGW%）および完全同点時のランダム抽選を含めた最新の順位表です。`;
+      targetRound = state.qualifyingRounds;
+      showFinalCol = true;
+    } else if (mode === 'final') {
+      infoBox.className = "info-box final-info";
+      infoBox.innerHTML = `<b>【大会 最終結果】</b> 予選結果および決勝卓を含めた最終順位表です。`;
+      targetRound = state.qualifyingRounds;
+      showFinalCol = true;
+    } else {
+      const rNum = parseInt(mode);
+      infoBox.className = "info-box";
+      infoBox.innerHTML = `<b>【予選 第 ${rNum} ラウンド 終了時点】</b> の順位表を表示しています。`;
+      targetRound = rNum;
+      showFinalCol = false;
+      isQualifyingFinished = false; 
+    }
+
+    const standings = calculateQualifyingStandings(targetRound);
+
+    let headerHtml = `<th class="text-center" style="width:35px;">順位</th>
+      <th>名前</th>
+      <th class="text-center">Pt</th>
+      <th class="text-center">OMW%</th>
+      <th class="text-center">GW%</th>
+      <th class="text-center">OGW%</th>`;
+    
+    if (mode === 'latest' || mode === 'final') {
+      for (let r = 1; r <= state.qualifyingRounds; r++) {
+        headerHtml += `<th class="text-center">R${r}</th>`;
+      }
+    } else {
+      for (let r = 1; r <= targetRound; r++) {
+        headerHtml += `<th class="text-center">R${r}</th>`;
+      }
+    }
+
+    if (showFinalCol) headerHtml += `<th class="text-center final-th">🏆決勝</th>`;
+    headerRow.innerHTML = headerHtml;
+
+    if (standings.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:#888;">登録者なし</td></tr>`;
+      nextActionContainer.innerHTML = "";
+      return;
+    }
+
+    let html = "";
+    standings.forEach((p, idx) => {
+      const isTop4 = idx < 4;
+      let finalResultStr = "-";
+      let isWinner = false;
+
+      if (state.finalRound && state.finalRound.ranks[p.id]) {
+        const fRank = state.finalRound.ranks[p.id];
+        finalResultStr = `${fRank}位`;
+        if (fRank === 1) isWinner = true;
+      } else if (isTop4 && isQualifyingFinished) {
+        finalResultStr = "進出";
+      }
+
+      const shouldHighlightTop4 = isTop4 && isQualifyingFinished;
+      const rowClass = shouldHighlightTop4 ? 'top-4-row' : '';
+
+      html += `<tr class="${rowClass}">
+        <td class="text-center"><strong>${idx + 1}</strong></td>
+        <td>
+          <strong>${escapeHtml(p.name)}</strong>
+          ${(showFinalCol && isWinner) ? '<span class="badge-winner">🏆</span>' : ''}
+          ${(shouldHighlightTop4 && !isWinner) ? '<span class="badge-top4">Top4</span>' : ''}
+        </td>
+        <td class="text-center"><strong>${p.totalPts}</strong></td>
+        <td class="text-center">${p.omwStr}</td>
+        <td class="text-center">${p.gwStr}</td>
+        <td class="text-center">${p.ogwStr}</td>`;
+      
+      const maxR = (mode === 'latest' || mode === 'final') ? state.qualifyingRounds : targetRound;
+      for (let r = 1; r <= maxR; r++) {
+        html += `<td class="text-center">${p.ranks[r]}</td>`;
+      }
+
+      if (showFinalCol) {
+        html += `<td class="text-center" style="font-weight:bold; color: var(--final-color);">${finalResultStr}</td>`;
+      }
+
+      html += `</tr>`;
+    });
+    tbody.innerHTML = html;
+
+    renderNextRoundAction(nextActionContainer);
+  }
+
+  function renderNextRoundAction(container) {
+    const currentR = state.currentRound;
+
+    if (currentR === 'final') {
+      container.innerHTML = `<div class="info-box final-info" style="text-align:center; margin-bottom:0;"><b>🏆 大会の全工程が終了しました！お疲れ様でした！</b></div>`;
+      return;
+    }
+
+    const r = parseInt(currentR);
+    if (r < state.qualifyingRounds) {
+      const nextR = r + 1;
+      container.innerHTML = `<button class="btn" style="padding:14px; font-size:1.05rem;" onclick="proceedToNextRound(${nextR})">⏩ 予選第 ${nextR} ラウンドの対戦卓生成へ進む</button>`;
+    } else {
+      container.innerHTML = `<button class="btn btn-final" style="padding:14px; font-size:1.05rem;" onclick="proceedToNextRound('final')">🏆 予選全ラウンド終了！ 決勝卓（Top 4）の生成へ進む</button>`;
+    }
+  }
+
+  function proceedToNextRound(nextRoundKey) {
+    state.currentRound = nextRoundKey;
+    saveData();
+    goToStep(2, true);
+  }
+
+  /* --- タイブレーカー計算ロジック --- */
+  function calculateQualifyingStandings(targetRound = state.qualifyingRounds) {
+    const statsMap = {};
+    state.players.forEach(p => {
+      if (state.randomSeedMap[p.id] === undefined) {
+        state.randomSeedMap[p.id] = Math.random();
+      }
+
+      statsMap[p.id] = {
+        id: p.id,
+        name: p.name,
+        totalPts: 0,
+        matchesPlayed: 0,
+        matchWinsVal: 0,
+        gameWinsVal: 0,
+        gameTotalVal: 0,
+        matchWinPct: 0,
+        gameWinPct: 0,
+        omw: 0,
+        ogw: 0,
+        omwStr: "33.3%",
+        gwStr: "0.0%",
+        ogwStr: "33.3%",
+        ranks: {},
+        lastRank: 99,
+        randomVal: state.randomSeedMap[p.id],
+        opponents: []
+      };
+      for (let r = 1; r <= state.qualifyingRounds; r++) { statsMap[p.id].ranks[r] = "-"; }
+    });
+
+    for (let r = 1; r <= targetRound; r++) {
+      const roundData = state.rounds[r];
+      if (roundData && roundData.tables) {
+        roundData.tables.forEach(t => {
+          const tableSize = t.playerIds.length;
+          t.playerIds.forEach(pId => {
+            if (!statsMap[pId]) return;
+            const rank = t.ranks[pId];
+            if (rank) {
+              statsMap[pId].ranks[r] = `${rank}位`;
+              statsMap[pId].lastRank = rank;
+              const pts = POINTS_MAP[rank] || 0;
+              statsMap[pId].totalPts += pts;
+              statsMap[pId].matchesPlayed += 1;
+
+              const gWin = (tableSize > 1) ? (tableSize - rank) / (tableSize - 1) : 1;
+              statsMap[pId].gameWinsVal += gWin;
+              statsMap[pId].gameTotalVal += 1;
+
+              const opponentsInTable = t.playerIds.filter(id => id !== pId);
+              statsMap[pId].opponents.push(...opponentsInTable);
+            }
+          });
+        });
+      }
+    }
+
+    Object.values(statsMap).forEach(p => {
+      const maxPossiblePts = p.matchesPlayed * 4;
+      p.matchWinPct = maxPossiblePts > 0 ? p.totalPts / maxPossiblePts : 0.333;
+      if (p.matchWinPct < 0.33) p.matchWinPct = 0.33;
+
+      p.gameWinPct = p.gameTotalVal > 0 ? p.gameWinsVal / p.gameTotalVal : 0.333;
+      if (p.gameWinPct < 0.33) p.gameWinPct = 0.33;
+
+      p.gwStr = (p.gameWinPct * 100).toFixed(1) + "%";
+    });
+
+    Object.values(statsMap).forEach(p => {
+      if (p.opponents.length > 0) {
+        let totalOpponentMW = 0;
+        let totalOpponentGW = 0;
+        p.opponents.forEach(oppId => {
+          if (statsMap[oppId]) {
+            totalOpponentMW += statsMap[oppId].matchWinPct;
+            totalOpponentGW += statsMap[oppId].gameWinPct;
+          }
+        });
+        p.omw = totalOpponentMW / p.opponents.length;
+        p.ogw = totalOpponentGW / p.opponents.length;
+      } else {
+        p.omw = 0.333;
+        p.ogw = 0.333;
+      }
+
+      if (p.omw < 0.33) p.omw = 0.33;
+      if (p.ogw < 0.33) p.ogw = 0.33;
+
+      p.omwStr = (p.omw * 100).toFixed(1) + "%";
+      p.ogwStr = (p.ogw * 100).toFixed(1) + "%";
+    });
+
+    const standings = Object.values(statsMap);
+    standings.sort((a, b) => {
+      if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
+      if (b.omw !== a.omw) return b.omw - a.omw;
+      if (b.gameWinPct !== a.gameWinPct) return b.gameWinPct - a.gameWinPct;
+      if (b.ogw !== a.ogw) return b.ogw - a.ogw;
+      if (a.lastRank !== b.lastRank) return a.lastRank - b.lastRank;
+      return b.randomVal - a.randomVal;
+    });
+    return standings;
+  }
+
+  /* --- ⑤ 管理機能（JSONバックアップ / リストア対応） --- */
+
+  function downloadBackupJSON() {
+    if (state.players.length === 0) { alert("バックアップするデータがありません。"); return; }
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+    const link = document.createElement("a");
+    link.setAttribute("href", dataStr);
+    const dateStr = new Date().toISOString().slice(0,19).replace(/[-T:]/g, "");
+    link.setAttribute("download", `EDH_大会データバックアップ_${dateStr}.json`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    showToast("大会データのJSONバックアップを出力しました");
+  }
+
+  function restoreBackupJSON() {
+    const fileInput = document.getElementById('json-file-input');
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert("復元するJSONファイルを選択してください。");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      try {
+        const restoredState = JSON.parse(e.target.result);
+
+        if (!restoredState || !restoredState.players) {
+          alert("有効なEDH大会データのJSON構造ではありません。");
+          return;
+        }
+
+        if (confirm(`バックアップから ${restoredState.players.length} 名の参加者データおよび大会進行状況を検出しました。\nリストアを実行して状態を復元しますか？`)) {
+          state.currentStep = restoredState.currentStep || 1;
+          state.currentRound = restoredState.currentRound || 1;
+          state.qualifyingRounds = restoredState.qualifyingRounds || 3;
+          state.players = restoredState.players || [];
+          state.rounds = restoredState.rounds || {};
+          state.finalRound = restoredState.finalRound || null;
+          state.isRegistrationLocked = restoredState.isRegistrationLocked || false;
+          state.currentStandingsTab = restoredState.currentStandingsTab || "latest";
+          state.randomSeedMap = restoredState.randomSeedMap || {};
+
+          saveData();
+          document.getElementById('total-rounds-select').value = state.qualifyingRounds;
+          updateRegistrationLockUI();
+          renderPlayerList();
+          goToStep(state.currentStep, true);
+          showToast("JSONデータからのリストアが完了しました！");
+          fileInput.value = "";
+        }
+      } catch (err) {
+        alert("JSONファイルの解析に失敗しました。正しいファイルか確認してください。");
+      }
+    };
+
+    reader.readAsText(file, "UTF-8");
+  }
+
+  function clearAllData() {
+    if (confirm("【警告】すべての登録者および試合データを削除して初期化しますか？")) {
+      state.players = []; state.rounds = {}; state.finalRound = null; state.isRegistrationLocked = false;
+      state.currentStep = 1; state.currentRound = 1; state.currentStandingsTab = "latest"; state.randomSeedMap = {};
+      saveData();
+      updateRegistrationLockUI();
+      renderPlayerList();
+      goToStep(1, true);
+      alert("すべてのデータを初期化しました。");
+    }
+  }
+
+  function loadSamplePlayers() {
+    if (state.isRegistrationLocked) return;
+    const countInput = document.getElementById('sample-count-input');
+    const count = parseInt(countInput.value) || 20;
+
+    if (count < 3 || count > 64) { alert("サンプル人数は3名〜64名の範囲で指定してください。"); return; }
+
+    let nextId = state.players.length > 0 ? Math.max(...state.players.map(p => p.id)) + 1 : 1;
+    for (let i = 1; i <= count; i++) {
+      if (state.players.length >= 64) break;
+      state.players.push({ id: nextId++, name: `サンプル選手 ${i}` });
+    }
+    saveData();
+    renderPlayerList();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+  }
+
+  window.onload = function() { loadData(); };
+</script>
+</body>
+</html>
