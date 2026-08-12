@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Edh-TornamentSupport - 太陽王式</title>
+  <title>Edh-TornamentSupport - 太陽王式UI対応</title>
   <style>
     :root {
       --primary-color: #2c3e50;
@@ -48,7 +48,7 @@
     .toast {
       background: rgba(44, 62, 80, 0.95); color: #fff; padding: 12px 16px;
       border-radius: 8px; font-size: 0.85rem; font-weight: bold; text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: fadeInOut 3s forwards;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: fadeInOut 5.5s forwards;
     }
     @keyframes fadeInOut {
       0% { opacity: 0; transform: translateY(-10px); }
@@ -464,6 +464,10 @@
     state.debugMode = checkbox.checked;
     saveData();
     applyDebugModeUI();
+    // デバッグモードの切り替え時に現在のステップ（対戦卓画面など）を再描画してボタンの表示/非表示を即時反映する
+    if (state.currentStep === 2) {
+      renderMatchingStep();
+    }
   }
 
   function applyDebugModeUI() {
@@ -774,7 +778,11 @@
           <button class="btn btn-warning" onclick="unlockMatch('final')" style="width:140px;">🔓 ロック解除</button>
         </div>`;
       } else {
-        bottomAction.innerHTML = `<button class="btn btn-final" onclick="confirmMatchAndProceed('final')">🔒 決勝卓を確定して成績入力へ進む ➔</button>`;
+        let finalActionHtml = `<button class="btn btn-final" onclick="confirmMatchAndProceed('final')">🔒 決勝卓を確定して成績入力へ進む ➔</button>`;
+        if (state.debugMode) {
+          finalActionHtml += `<button class="btn btn-debug btn-sm" style="margin-top: 8px; width: 100%;" onclick="generateFinalPairing()">🛠️ 決勝卓を再抽選</button>`;
+        }
+        bottomAction.innerHTML = finalActionHtml;
       }
 
       const standings = calculateStandingsUpToRound(state.qualifyingRounds);
@@ -810,12 +818,20 @@
       }
 
       if (isLocked) {
-        bottomAction.innerHTML = `<div class="flex-row">
+        let lockedBottomHtml = `<div class="flex-row">
           <button class="btn btn-secondary" style="flex:1;" disabled>🔒 予選R${r} マッチング確定済み</button>
           <button class="btn btn-warning" onclick="unlockMatch(${r})" style="width:140px;">🔓 ロック解除</button>
         </div>`;
+        if (state.debugMode) {
+          lockedBottomHtml += `<button class="btn btn-debug btn-sm" style="margin-top: 8px; width: 100%;" onclick="generateQualifyingPairings(${r})">🛠️ 予選R${r} を再抽選</button>`;
+        }
+        bottomAction.innerHTML = lockedBottomHtml;
       } else {
-        topAction.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="generateQualifyingPairings(${r})">予選R${r} 再抽選</button>`;
+        let topActionHtml = "";
+        if (state.debugMode) {
+          topActionHtml += `<button class="btn btn-debug btn-sm" style="margin-bottom: 8px; width: 100%;" onclick="generateQualifyingPairings(${r})">🛠️ 予選R${r} 再抽選</button>`;
+        }
+        topAction.innerHTML = topActionHtml;
         bottomAction.innerHTML = `<button class="btn" onclick="confirmMatchAndProceed(${r})">🔒 マッチングを確定して成績入力へ進む ➔</button>`;
       }
 
@@ -1435,7 +1451,7 @@
       updateRegistrationLockUI();
       renderPlayerList();
       goToStep(1, true);
-      alert("すべてのデータを初期化しました。");
+      alert("すべてのデータを初期化済みです。");
     }
   }
 
