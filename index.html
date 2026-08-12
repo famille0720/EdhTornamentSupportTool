@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Edh-TornamentSupport</title>
+  <title>Edh-TornamentSupport - 太陽王式</title>
   <style>
     :root {
       --primary-color: #2c3e50;
@@ -121,13 +121,22 @@
 
     .match-table-card { border-left: 4px solid var(--primary-color); margin-bottom: 12px; padding: 10px 12px; }
     .match-table-card.final-match { border-left-color: var(--final-color); background-color: #fffaf5; }
-    .match-table-header { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; color: var(--primary-color); }
+    .match-table-header { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; color: var(--primary-color); display: flex; justify-content: space-between; align-items: center; }
     
-    .player-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; }
-    .player-row:last-child { border-bottom: none; }
-    .player-name-label { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; }
+    .player-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 6px; border-bottom: 1px dashed #eee; background: #fafafa; border-radius: 6px; margin-bottom: 4px; }
+    .player-row.is-winner { background: #e8f8f5; border: 1px solid var(--accent-color); }
+    .player-row.final-winner { background: #fdf2e9; border: 1px solid var(--final-color); }
+    .player-name-label { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; font-size: 0.9rem; }
     .player-stats-sub { font-size: 0.75rem; color: #666; margin-left: 6px; font-weight: normal; background: #f1f3f5; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
-    .rank-select { width: 130px; margin-bottom: 0; padding: 6px; font-size: 0.85rem; }
+    
+    .winner-radio-label {
+      display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: var(--accent-color);
+      background: #fff; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--accent-color);
+    }
+    .final-winner-radio-label {
+      color: var(--final-color); border-color: var(--final-color);
+    }
+    .winner-radio-label input { margin: 0; width: 16px; height: 16px; cursor: pointer; }
 
     .top-4-row { background-color: var(--highlight-bg); }
     .top-4-row td:first-child { border-left: 3px solid var(--highlight-border); font-weight: bold; }
@@ -145,57 +154,23 @@
     .info-box.debug-info { background: #f3e5f5; border-left-color: var(--debug-color); color: #4a148c; }
     .info-box.warn-info { background: #fef9e7; border-left-color: #f39c12; color: #7d6608; }
 
-    /* 楕円型のシンプルなトグルスイッチ用スタイル */
     .toggle-switch-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #faf5fc;
-      border: 1px solid #e1bee7;
-      padding: 10px 14px;
-      border-radius: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #faf5fc; border: 1px solid #e1bee7; padding: 10px 14px; border-radius: 8px;
     }
-    .toggle-label {
-      font-weight: bold;
-      font-size: 0.9rem;
-      color: #4a148c;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 52px;
-      height: 28px;
-    }
-    .switch input { 
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .toggle-label { font-weight: bold; font-size: 0.9rem; color: #4a148c; }
+    .switch { position: relative; display: inline-block; width: 52px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: .3s;
-      border-radius: 28px;
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: .3s; border-radius: 28px;
     }
     .slider:before {
-      position: absolute;
-      content: "";
-      height: 22px;
-      width: 22px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .3s;
-      border-radius: 50%;
+      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
     }
-    input:checked + .slider {
-      background-color: var(--debug-color);
-    }
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
+    input:checked + .slider { background-color: var(--debug-color); }
+    input:checked + .slider:before { transform: translateX(24px); }
 
     .debug-only { display: none; }
     .debug-mode .debug-only { display: block; }
@@ -206,7 +181,7 @@
   <div id="toast-container"></div>
 
   <header>
-    <h1>Edh-TornamentSupport(v0.1)</h1>
+    <h1>Edh-TornamentSupport</h1>
   </header>
 
   <!-- ステップ・ウィザードバー -->
@@ -230,17 +205,24 @@
 
   <div class="container">
 
-    <!-- ① 受付・登録ステップ -->
+    <!-- ① 受付・登録ステップ（太陽王式一本化） -->
     <div id="step-1" class="step-content">
       <div class="card">
         <h2>
-          <span>① 受付・プレイヤー登録 <span id="registration-lock-badge"></span></span>
+          <span>① 参加者登録・ラウンド設定 <span id="registration-lock-badge"></span></span>
           <span class="player-count-badge" id="player-count">0 / 64名</span>
         </h2>
 
+        <!-- 太陽王式の説明を上部に配置 -->
+        <div class="info-box" style="background: #fff; border-left-color: var(--accent-color); color: #333; padding: 12px; margin-bottom: 12px;">
+          <b>【太陽王式ルール】</b><br>
+          • 全員1000ポイントの持ち点からスタートします。<br>
+          • 敗北したプレイヤーは自身の保有ポイントの一定割合（7%など）を失い、その失ったポイントの総量が勝者（1名）に加算されます。<br>
+          • 予選上位4名が決勝卓へ進出し、王者を決定します。
+        </div>
+
         <div id="registration-lock-info"></div>
 
-        <!-- デバッグモードONの場合のみ受付タブにサンプルプレイヤー追加エリアを表示 -->
         <div class="debug-only" style="background: #f3e5f5; border: 1px dashed var(--debug-color); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
           <label style="font-weight: bold; font-size:0.9rem; display:block; margin-bottom:4px; color: var(--debug-color);">🛠️ デバッグ：テスト用サンプルプレイヤー追加</label>
           <div class="flex-row">
@@ -316,7 +298,7 @@
       <div class="card">
         <h2 id="results-card-title">③ 成績入力</h2>
         <div class="round-selector" id="results-round-selector"></div>
-        <div class="info-box" id="results-info-box">各卓の着順を選択してください。</div>
+        <div class="info-box" id="results-info-box">各卓の勝者1名、または「引き分け」を選択してください。</div>
 
         <div class="debug-only" style="margin-bottom: 12px;">
           <button class="btn btn-debug btn-sm" style="width:100%;" id="btn-debug-random-results" onclick="fillRandomResults()">
@@ -336,7 +318,7 @@
     <!-- ④ 結果確認ステップ -->
     <div id="step-4" class="step-content">
       <div class="card">
-        <h2>④ 大会順位表</h2>
+        <h2 id="standings-card-title">④ 大会順位表</h2>
 
         <div class="round-selector" id="standings-round-selector"></div>
         <div class="info-box" id="standings-info-box"></div>
@@ -401,16 +383,15 @@
     currentStep: 1,
     currentRound: 1,
     qualifyingRounds: 3,
-    players: [],
-    rounds: {},
-    finalRound: null,
+    tournamentSystem: "commander_god",
+    players: [], // { id, name, points }
+    rounds: {},  // r => { tables: [{ tableNo, playerIds, winnerId: null, isDraw: false }], locked, resultsLocked }
+    finalRound: null, // { playerIds: [], winnerId: null, isDraw: false, locked, resultsLocked }
     isRegistrationLocked: false,
     currentStandingsTab: "latest",
     debugMode: false,
     randomSeedMap: {}
   };
-
-  const POINTS_MAP = { 1: 4, 2: 3, 3: 2, 4: 1 };
 
   /* トースト通知 */
   function showToast(msg) {
@@ -423,17 +404,18 @@
   }
 
   function saveData() { 
-    localStorage.setItem('edh_app_state_v9', JSON.stringify(state)); 
+    localStorage.setItem('edh_tournament_support_state_v4', JSON.stringify(state)); 
   }
 
   function loadData() {
-    const saved = localStorage.getItem('edh_app_state_v9');
+    const saved = localStorage.getItem('edh_tournament_support_state_v4');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         state.currentStep = parsed.currentStep || 1;
         state.currentRound = parsed.currentRound || 1;
         state.qualifyingRounds = parsed.qualifyingRounds || 3;
+        state.tournamentSystem = "commander_god"; // 太陽王式固定
         state.players = parsed.players || [];
         state.rounds = parsed.rounds || {};
         state.finalRound = parsed.finalRound || null;
@@ -512,7 +494,7 @@
     if (state.players.length >= 64) { alert("参加者は最大64名までです。"); return; }
 
     const nextId = state.players.length > 0 ? Math.max(...state.players.map(p => p.id)) + 1 : 1;
-    state.players.push({ id: nextId, name: name });
+    state.players.push({ id: nextId, name: name, points: 1000 });
     input.value = "";
     saveData();
     renderPlayerList();
@@ -533,7 +515,7 @@
 
     for (const name of names) {
       if (state.players.length >= 64) { alert("最大64名に達したため中断しました。"); break; }
-      state.players.push({ id: nextId++, name: name });
+      state.players.push({ id: nextId++, name: name, points: 1000 });
     }
 
     textarea.value = "";
@@ -588,6 +570,10 @@
     state.isRegistrationLocked = true;
     state.currentRound = 1;
 
+    state.players.forEach(p => {
+      p.points = 1000;
+    });
+
     state.randomSeedMap = {};
     state.players.forEach(p => {
       state.randomSeedMap[p.id] = Math.random();
@@ -619,14 +605,14 @@
 
     if (state.isRegistrationLocked) {
       badge.innerHTML = `<span class="badge-locked">🔒 確定済み</span>`;
-      info.innerHTML = `<div class="info-box warn-info"><b>🔒 大会受付は確定されています。</b></div>`;
+      info.innerHTML = `<div class="info-box warn-info"><b>🔒 大会受付は確定されています（形式: 太陽王式）。</b></div>`;
       btnComplete.style.display = "none";
       btnUnlock.style.display = "block";
       selectRounds.disabled = true;
       inputSection.style.display = "none";
     } else {
       badge.innerHTML = "";
-      info.innerHTML = `<div class="info-box">予選ラウンド数を選択し, 参加者を追加して確定してください。</div>`;
+      info.innerHTML = `<div class="info-box">予選ラウンド数を選択し、参加者を追加して確定してください。</div>`;
       btnComplete.style.display = "block";
       btnUnlock.style.display = "none";
       selectRounds.disabled = false;
@@ -660,6 +646,17 @@
     return true;
   }
 
+  // 指定されたラウンドを開く権限があるか（前のラウンドの成績が完了しているか）をチェック
+  function canOpenRound(roundKey) {
+    if (!state.isRegistrationLocked) return false;
+    if (roundKey === 1) return true;
+    if (roundKey === 'final') {
+      return areAllQualifiersFinished();
+    }
+    const prevR = parseInt(roundKey) - 1;
+    return isRoundResultsFinished(prevR);
+  }
+
   /* --- ラウンド切り替えセレクター --- */
 
   function renderRoundSelectors() {
@@ -669,16 +666,20 @@
 
     let mHtml = ""; let rHtml = ""; let sHtml = "";
 
-    sHtml += `<div class="round-pill ${state.currentStandingsTab === 'latest' ? 'active' : ''}" onclick="switchStandingsTab('latest')">最新成績</div>`;
+    sHtml += `<div class="round-pill ${state.currentStandingsTab === 'latest' ? 'active' : ''}" onclick="switchStandingsTab('latest')">最新順位</div>`;
 
     for (let i = 1; i <= state.qualifyingRounds; i++) {
+      const isAllowedM = canOpenRound(i);
       const activeM = state.currentRound === i ? 'active' : '';
-      mHtml += `<div class="round-pill ${activeM}" onclick="setCurrentRound(${i}, 2)">予選R${i}</div>`;
+      const mDisabledClass = !isAllowedM ? 'disabled' : '';
+      const mClickAction = isAllowedM ? `onclick="setCurrentRound(${i}, 2)"` : `onclick="showToast('前のラウンドの成績が入力・確定されていません')`;
+      mHtml += `<div class="round-pill ${activeM} ${mDisabledClass}" ${mClickAction}>予選R${i}</div>`;
 
       const hasMatch = hasRoundMatching(i);
+      const isAllowedR = canOpenRound(i) && hasMatch;
       const activeR = state.currentRound === i ? 'active' : '';
-      const rDisabledClass = !hasMatch ? 'disabled' : '';
-      const rClickAction = hasMatch ? `onclick="setCurrentRound(${i}, 3)"` : '';
+      const rDisabledClass = !isAllowedR ? 'disabled' : '';
+      const rClickAction = isAllowedR ? `onclick="setCurrentRound(${i}, 3)"` : `onclick="showToast('対戦卓が未生成、または前のRの成績が未入力です')`;
       rHtml += `<div class="round-pill ${activeR} ${rDisabledClass}" ${rClickAction}>予選R${i}</div>`;
 
       const isFinished = isRoundResultsFinished(i);
@@ -688,13 +689,18 @@
       sHtml += `<div class="round-pill ${activeS} ${disabledClass}" ${clickAction}>R${i}時点</div>`;
     }
 
-    const finalHasMatch = hasRoundMatching('final');
+    // 決勝卓の判定
+    const finalAllowedM = canOpenRound('final');
     const finalActiveM = state.currentRound === 'final' ? 'active' : '';
-    mHtml += `<div class="round-pill ${finalActiveM}" onclick="setCurrentRound('final', 2)">🏆 決勝卓</div>`;
+    const finalMDisabledClass = !finalAllowedM ? 'disabled' : '';
+    const finalMClickAction = finalAllowedM ? `onclick="setCurrentRound('final', 2)"` : `onclick="showToast('予選全ラウンドの成績が完了していません')`;
+    mHtml += `<div class="round-pill ${finalActiveM} ${finalMDisabledClass}" ${finalMClickAction}>🏆 決勝卓</div>`;
 
+    const finalHasMatch = hasRoundMatching('final');
+    const finalAllowedR = finalAllowedM && finalHasMatch;
     const finalActiveR = state.currentRound === 'final' ? 'active' : '';
-    const finalRDisabledClass = !finalHasMatch ? 'disabled' : '';
-    const finalRClickAction = finalHasMatch ? `onclick="setCurrentRound('final', 3)"` : '';
+    const finalRDisabledClass = !finalAllowedR ? 'disabled' : '';
+    const finalRClickAction = finalAllowedR ? `onclick="setCurrentRound('final', 3)"` : `onclick="showToast('決勝卓が未生成、または予選が未完了です')`;
     rHtml += `<div class="round-pill ${finalActiveR} ${finalRDisabledClass}" ${finalRClickAction}>🏆 決勝卓</div>`;
 
     const isFinalFinished = isRoundResultsFinished('final');
@@ -709,6 +715,10 @@
   }
 
   function setCurrentRound(r, stepTarget) {
+    if (!canOpenRound(r)) {
+      showToast("前のラウンドの成績が完了していないため選択できません。");
+      return;
+    }
     state.currentRound = r;
     saveData();
     renderRoundSelectors();
@@ -720,36 +730,30 @@
 
   function hasAnyResultsRecorded(roundKey) {
     if (roundKey === 'final') {
-      return state.finalRound && state.finalRound.ranks && Object.keys(state.finalRound.ranks).length > 0;
+      return state.finalRound && (state.finalRound.winnerId !== null || state.finalRound.isDraw);
     }
     const r = parseInt(roundKey);
     const roundData = state.rounds[r];
     if (!roundData || !roundData.tables) return false;
-    return roundData.tables.some(t => t.ranks && Object.keys(t.ranks).length > 0);
+    return roundData.tables.some(t => t.winnerId !== null || t.isDraw);
   }
 
   function renderMatchingStep() {
     const key = state.currentRound;
+    
+    // ガード：不正にURL状態などで飛んできた場合
+    if (!canOpenRound(key)) {
+      showToast("前のラウンドが完了していません。");
+      goToStep(1, true);
+      return;
+    }
+
     const topAction = document.getElementById('matching-top-action-container');
     const bottomAction = document.getElementById('matching-bottom-action-container');
     const display = document.getElementById('matching-display-container');
     const cardTitle = document.getElementById('matching-card-title');
 
     topAction.innerHTML = ""; bottomAction.innerHTML = "";
-
-    let statsMap = {};
-    if (key === 'final') {
-      const standings = calculateQualifyingStandings(state.qualifyingRounds);
-      standings.forEach(p => { statsMap[p.id] = { totalPts: p.totalPts, omwStr: p.omwStr }; });
-    } else {
-      const r = parseInt(key);
-      if (r > 1) {
-        const standings = calculateQualifyingStandings(r - 1);
-        standings.forEach(p => { statsMap[p.id] = { totalPts: p.totalPts, omwStr: p.omwStr }; });
-      } else {
-        state.players.forEach(p => { statsMap[p.id] = { totalPts: 0, omwStr: "33.3%" }; });
-      }
-    }
 
     if (key === 'final') {
       cardTitle.innerText = "② 🏆 決勝卓（Top 4）対戦卓";
@@ -773,14 +777,18 @@
         bottomAction.innerHTML = `<button class="btn btn-final" onclick="confirmMatchAndProceed('final')">🔒 決勝卓を確定して成績入力へ進む ➔</button>`;
       }
 
+      const standings = calculateStandingsUpToRound(state.qualifyingRounds);
+      let statsMap = {};
+      standings.forEach(p => { statsMap[p.id] = p.points; });
+
       let html = `<div class="card match-table-card final-match">
-        <div class="match-table-header">🏆 決勝卓 (予選1位〜4位) ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</div>`;
+        <div class="match-table-header"><span>🏆 決勝卓 (予選1位〜4位)</span> ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</div>`;
       existingFinal.playerIds.forEach((pId, idx) => {
         const p = state.players.find(x => x.id === pId);
-        const st = statsMap[pId] || { totalPts: 0, omwStr: "33.3%" };
+        const pts = statsMap[pId] !== undefined ? statsMap[pId] : 1000;
         html += `<div class="player-row">
           <span class="player-name-label">予選${idx + 1}位 - P${pId}: ${escapeHtml(p ? p.name : '')}</span>
-          <span class="player-stats-sub">${st.totalPts}pt / OMW: ${st.omwStr}</span>
+          <span class="player-stats-sub">保有: ${pts} pt</span>
         </div>`;
       });
       html += `</div>`;
@@ -788,7 +796,7 @@
 
     } else {
       const r = parseInt(key);
-      cardTitle.innerText = `② 予選第 ${r} ラウンド 対戦卓生成`;
+      cardTitle.innerText = `② 予選第 ${r} ラウンド 対戦卓生成（完全ランダム）`;
       cardTitle.className = "";
 
       const roundData = state.rounds[r];
@@ -796,7 +804,7 @@
       const isLocked = roundData && roundData.locked;
 
       if (!hasTables) {
-        topAction.innerHTML = `<button class="btn" onclick="generateQualifyingPairings(${r})">🎲 予選第${r}ラウンドのマッチングを自動生成</button>`;
+        topAction.innerHTML = `<button class="btn" onclick="generateQualifyingPairings(${r})">🎲 予選第${r}ラウンドのマッチングを生成</button>`;
         display.innerHTML = `<p style="color:#888; text-align:center;">ボタンを押してマッチングを生成してください。</p>`;
         return;
       }
@@ -807,21 +815,24 @@
           <button class="btn btn-warning" onclick="unlockMatch(${r})" style="width:140px;">🔓 ロック解除</button>
         </div>`;
       } else {
-        if (r === 1) {
-          topAction.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="generateQualifyingPairings(${r})">予選R${r} 再抽選</button>`;
-        }
+        topAction.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="generateQualifyingPairings(${r})">予選R${r} 再抽選</button>`;
         bottomAction.innerHTML = `<button class="btn" onclick="confirmMatchAndProceed(${r})">🔒 マッチングを確定して成績入力へ進む ➔</button>`;
       }
 
+      let prevStandings = {};
+      let prevRoundTarget = r > 1 ? r - 1 : 0;
+      let standings = prevRoundTarget > 0 ? calculateStandingsUpToRound(prevRoundTarget) : state.players;
+      standings.forEach(p => { prevStandings[p.id] = p.points; });
+
       let html = "";
       roundData.tables.forEach(t => {
-        html += `<div class="card match-table-card"><div class="match-table-header">第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</div>`;
+        html += `<div class="card match-table-card"><div class="match-table-header"><span>第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</span></div>`;
         t.playerIds.forEach(pId => {
           const p = state.players.find(x => x.id === pId);
-          const st = statsMap[pId] || { totalPts: 0, omwStr: "33.3%" };
+          const pts = prevStandings[pId] !== undefined ? prevStandings[pId] : 1000;
           html += `<div class="player-row">
             <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
-            <span class="player-stats-sub">${st.totalPts}pt / OMW: ${st.omwStr}</span>
+            <span class="player-stats-sub">保有: ${pts} pt</span>
           </div>`;
         });
         html += `</div>`;
@@ -862,9 +873,6 @@
     if (!state.isRegistrationLocked) {
       alert("事前登録がまだ確定していません。ステップ①で確定してください。"); return;
     }
-    if (roundNum > 1 && (!state.rounds[roundNum - 1] || !state.rounds[roundNum - 1].tables)) {
-      alert(`先に予選第${roundNum - 1}ラウンドのマッチングを行ってください。`); return;
-    }
 
     if (hasAnyResultsRecorded(roundNum)) {
       if (!confirm(`予選第${roundNum}ラウンドの成績がすでに入力されています。\n再抽選を行うと、入力済みの成績データは消去されますがよろしいですか？`)) {
@@ -872,15 +880,11 @@
       }
     }
 
-    let playerPool = [];
-    if (roundNum === 1) {
-      playerPool = [...state.players.map(p => p.id)];
-      for (let i = playerPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [playerPool[i], playerPool[j]] = [playerPool[j], playerPool[i]];
-      }
-    } else {
-      playerPool = calculateQualifyingStandings(roundNum - 1).map(p => p.id);
+    let playerPool = [...state.players.map(p => p.id)];
+    
+    for (let i = playerPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playerPool[i], playerPool[j]] = [playerPool[j], playerPool[i]];
     }
 
     const N = playerPool.length;
@@ -896,11 +900,11 @@
     let tableNo = 1; let poolIdx = 0;
 
     for (let i = 0; i < num4s; i++) {
-      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 4), ranks: {} });
+      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 4), winnerId: null, isDraw: false });
       poolIdx += 4;
     }
     for (let i = 0; i < num3s; i++) {
-      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 3), ranks: {} });
+      tables.push({ tableNo: tableNo++, playerIds: playerPool.slice(poolIdx, poolIdx + 3), winnerId: null, isDraw: false });
       poolIdx += 3;
     }
 
@@ -915,10 +919,10 @@
       }
     }
 
-    const standings = calculateQualifyingStandings();
+    const standings = calculateStandingsUpToRound(state.qualifyingRounds);
     if (standings.length < 4) { alert("決勝卓を作るには最低4名の参加者が必要です。"); return; }
     const top4 = standings.slice(0, 4).map(p => p.id);
-    state.finalRound = { playerIds: top4, ranks: {}, locked: false, resultsLocked: false };
+    state.finalRound = { playerIds: top4, winnerId: null, isDraw: false, locked: false, resultsLocked: false };
     saveData(); renderMatchingStep();
   }
 
@@ -926,6 +930,13 @@
 
   function renderResultsStep() {
     const key = state.currentRound;
+
+    if (!canOpenRound(key)) {
+      showToast("前のラウンドが完了していません。");
+      goToStep(1, true);
+      return;
+    }
+
     const container = document.getElementById('results-input-container');
     const bottomAction = document.getElementById('results-bottom-action-container');
     const cardTitle = document.getElementById('results-card-title');
@@ -958,25 +969,27 @@
           <button class="btn btn-warning" onclick="unlockResults('final')" style="width:140px;">🔓 成績を修正</button>
         </div>`;
       } else {
-        infoBox.innerHTML = "<b>決勝卓の順位を選択してください。（すべての卓の順位を選択すると確定ボタンが押せるようになります）</b>";
+        infoBox.innerHTML = "<b>決勝卓の勝者1名を選ぶか、「時間切れ引き分け」にチェックを入れてください。</b>";
         bottomAction.innerHTML = `<button class="btn btn-final" id="btn-complete-results" onclick="completeResultsAndProceed('final')">✅ 成績を確定して結果確認へ進む ➔</button>`;
       }
 
-      let html = `<div class="card match-table-card final-match"><div class="match-table-header">🏆 決勝卓 ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</div>`;
+      let html = `<div class="card match-table-card final-match">
+        <div class="match-table-header">
+          <span>🏆 決勝卓 ${isLocked ? '<span class="badge-locked">確定済み</span>' : ''}</span>
+          <label style="font-size:0.8rem; font-weight:normal; display:flex; align-items:center; gap:4px; cursor:pointer; color:var(--final-color);">
+            <input type="checkbox" ${t.isDraw ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleTableDraw('final', 0, this.checked)"> ⏱️ 時間切れ引き分け
+          </label>
+        </div>`;
+
       t.playerIds.forEach(pId => {
         const p = state.players.find(x => x.id === pId);
-        const currentRank = t.ranks[pId] || null;
+        const isWinner = t.winnerId === pId;
         
-        let optionsHtml = `<option value="" ${currentRank === null ? 'selected' : ''}>-- 選択 --</option>`;
-        for(let rank = 1; rank <= t.playerIds.length; rank++) {
-          optionsHtml += `<option value="${rank}" ${currentRank == rank ? 'selected' : ''}>${rank}位</option>`;
-        }
-
-        html += `<div class="player-row">
+        html += `<div class="player-row ${isWinner ? 'final-winner' : ''}">
           <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
-          <select class="rank-select" ${isLocked ? 'disabled' : ''} onchange="updateFinalRank(${pId}, this.value)">
-            ${optionsHtml}
-          </select>
+          <label class="winner-radio-label final-winner-radio-label">
+            <input type="radio" name="final_winner_radio" ${isWinner ? 'checked' : ''} ${isLocked || t.isDraw ? 'disabled' : ''} onchange="selectWinner('final', 0, ${pId})"> 👑 勝者
+          </label>
         </div>`;
       });
       html += `</div>`;
@@ -1000,27 +1013,29 @@
         </div>`;
       } else {
         infoBox.className = "info-box";
-        infoBox.innerHTML = "各卓の着順を選択してください。（1位:4pt / 2位:3pt / 3位:2pt / 4位:1pt ※未選択のコンボボックスがある場合、ボタンは非活性になります）";
+        infoBox.innerHTML = "各卓の勝者1名を選ぶか、時間切れの場合は「引き分け」にチェックを入れてください。";
         bottomAction.innerHTML = `<button class="btn" id="btn-complete-results" onclick="completeResultsAndProceed(${r})">✅ 成績を確定して結果確認へ進む ➔</button>`;
       }
 
       let html = "";
       roundData.tables.forEach((t, tIdx) => {
-        html += `<div class="card match-table-card"><div class="match-table-header">第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</div>`;
+        html += `<div class="card match-table-card">
+          <div class="match-table-header">
+            <span>第 ${t.tableNo} 卓 (${t.playerIds.length}人卓)</span>
+            <label style="font-size:0.8rem; font-weight:normal; display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" ${t.isDraw ? 'checked' : ''} ${isLocked ? 'disabled' : ''} onchange="toggleTableDraw(${r}, ${tIdx}, this.checked)"> ⏱️ 引き分け
+            </label>
+          </div>`;
+
         t.playerIds.forEach(pId => {
           const p = state.players.find(x => x.id === pId);
-          const currentRank = t.ranks[pId] || null;
-          
-          let optionsHtml = `<option value="" ${currentRank === null ? 'selected' : ''}>-- 選択 --</option>`;
-          for(let rank = 1; rank <= t.playerIds.length; rank++) {
-            optionsHtml += `<option value="${rank}" ${currentRank == rank ? 'selected' : ''}>${rank}位 (${POINTS_MAP[rank]}pt)</option>`;
-          }
+          const isWinner = t.winnerId === pId;
 
-          html += `<div class="player-row">
+          html += `<div class="player-row ${isWinner ? 'is-winner' : ''}">
             <span class="player-name-label">P${pId}: ${escapeHtml(p ? p.name : '')}</span>
-            <select class="rank-select" ${isLocked ? 'disabled' : ''} onchange="updateQualifyingRank(${r}, ${tIdx}, ${pId}, this.value)">
-              ${optionsHtml}
-            </select>
+            <label class="winner-radio-label">
+              <input type="radio" name="table_${r}_${tIdx}_winner" ${isWinner ? 'checked' : ''} ${isLocked || t.isDraw ? 'disabled' : ''} onchange="selectWinner(${r}, ${tIdx}, ${pId})"> 👑 勝者
+            </label>
           </div>`;
         });
         html += `</div>`;
@@ -1036,31 +1051,60 @@
     if (!btn) return;
 
     const key = state.currentRound;
-    let totalExpected = 0;
-    let totalFilled = 0;
+    let allValid = true;
 
     if (key === 'final') {
       const t = state.finalRound;
-      if (t) {
-        totalExpected = t.playerIds.length;
-        totalFilled = Object.keys(t.ranks).length;
+      if (!t) { btn.disabled = true; return; }
+      if (!t.isDraw && t.winnerId === null) {
+        allValid = false;
       }
     } else {
       const r = parseInt(key);
       const roundData = state.rounds[r];
-      if (roundData && roundData.tables) {
-        roundData.tables.forEach(t => {
-          totalExpected += t.playerIds.length;
-          totalFilled += Object.keys(t.ranks).length;
-        });
+      if (!roundData || !roundData.tables) { btn.disabled = true; return; }
+
+      for (const t of roundData.tables) {
+        if (!t.isDraw && t.winnerId === null) {
+          allValid = false;
+          break;
+        }
       }
     }
 
-    if (totalExpected === 0 || totalFilled < totalExpected) {
-      btn.disabled = true;
+    btn.disabled = !allValid;
+  }
+
+  function toggleTableDraw(roundKey, tableIdx, isChecked) {
+    if (roundKey === 'final') {
+      if (!state.finalRound) return;
+      state.finalRound.isDraw = isChecked;
+      if (isChecked) state.finalRound.winnerId = null;
     } else {
-      btn.disabled = false;
+      const r = parseInt(roundKey);
+      const roundData = state.rounds[r];
+      if (!roundData || !roundData.tables[tableIdx]) return;
+      roundData.tables[tableIdx].isDraw = isChecked;
+      if (isChecked) roundData.tables[tableIdx].winnerId = null;
     }
+    saveData();
+    renderResultsStep();
+  }
+
+  function selectWinner(roundKey, tableIdx, playerId) {
+    if (roundKey === 'final') {
+      if (!state.finalRound) return;
+      state.finalRound.winnerId = playerId;
+      state.finalRound.isDraw = false;
+    } else {
+      const r = parseInt(roundKey);
+      const roundData = state.rounds[r];
+      if (!roundData || !roundData.tables[tableIdx]) return;
+      roundData.tables[tableIdx].winnerId = playerId;
+      roundData.tables[tableIdx].isDraw = false;
+    }
+    saveData();
+    renderResultsStep();
   }
 
   function completeResultsAndProceed(roundKey) {
@@ -1100,47 +1144,98 @@
     const key = state.currentRound;
     if (key === 'final') {
       if (!state.finalRound || state.finalRound.resultsLocked) return;
-      const count = state.finalRound.playerIds.length;
-      const ranks = Array.from({length: count}, (_, i) => i + 1);
-      for (let i = ranks.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [ranks[i], ranks[j]] = [ranks[j], ranks[i]];
-      }
-      state.finalRound.playerIds.forEach((pId, idx) => { state.finalRound.ranks[pId] = ranks[idx]; });
+      state.finalRound.isDraw = false;
+      const pIds = state.finalRound.playerIds;
+      const randIdx = Math.floor(Math.random() * pIds.length);
+      state.finalRound.winnerId = pIds[randIdx];
     } else {
       const r = parseInt(key);
       const roundData = state.rounds[r];
       if (!roundData || !roundData.tables || roundData.resultsLocked) return;
 
       roundData.tables.forEach(t => {
-        const count = t.playerIds.length;
-        const ranks = Array.from({length: count}, (_, i) => i + 1);
-        for (let i = ranks.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [ranks[i], ranks[j]] = [ranks[j], ranks[i]];
-        }
-        t.playerIds.forEach((pId, idx) => { t.ranks[pId] = ranks[idx]; });
+        t.isDraw = false;
+        const pIds = t.playerIds;
+        const randIdx = Math.floor(Math.random() * pIds.length);
+        t.winnerId = pIds[randIdx];
       });
     }
     saveData(); renderResultsStep();
   }
 
-  function updateQualifyingRank(roundNum, tableIdx, playerId, rankVal) {
-    if (rankVal === "") delete state.rounds[roundNum].tables[tableIdx].ranks[playerId];
-    else state.rounds[roundNum].tables[tableIdx].ranks[playerId] = parseInt(rankVal);
-    saveData();
-    updateResultsSubmitButtonState();
+  /* --- 太陽王式のポイント計算コア --- */
+
+  function calculateStandingsUpToRound(targetRound) {
+    let currentPoints = {};
+    state.players.forEach(p => {
+      currentPoints[p.id] = 1000;
+    });
+
+    let roundRanksHistory = {};
+    state.players.forEach(p => { roundRanksHistory[p.id] = {}; });
+
+    for (let r = 1; r <= targetRound; r++) {
+      const roundData = state.rounds[r];
+      if (!roundData || !roundData.resultsLocked || !roundData.tables) continue;
+
+      roundData.tables.forEach(t => {
+        if (t.isDraw) {
+          t.playerIds.forEach(pId => {
+            let cur = currentPoints[pId] !== undefined ? currentPoints[pId] : 1000;
+            let lost = Math.floor(cur * 0.07);
+            currentPoints[pId] -= lost;
+            roundRanksHistory[pId][r] = "引分";
+          });
+        } else {
+          let lostMap = {};
+          let totalPool = 0;
+
+          t.playerIds.forEach(pId => {
+            const isWin = (t.winnerId === pId);
+            roundRanksHistory[pId][r] = isWin ? "1位" : "敗北";
+            if (!isWin) {
+              let cur = currentPoints[pId] !== undefined ? currentPoints[pId] : 1000;
+              let lost = Math.floor(cur * 0.07);
+              lostMap[pId] = lost;
+              totalPool += lost;
+            }
+          });
+
+          t.playerIds.forEach(pId => {
+            if (pId === t.winnerId) {
+              currentPoints[pId] += totalPool;
+            } else if (lostMap[pId] !== undefined) {
+              currentPoints[pId] -= lostMap[pId];
+              if (currentPoints[pId] < 0) currentPoints[pId] = 0;
+            }
+          });
+        }
+      });
+    }
+
+    if (Object.keys(state.randomSeedMap).length === 0) {
+      state.players.forEach(p => { state.randomSeedMap[p.id] = Math.random(); });
+    }
+
+    const standings = state.players.map(p => {
+      return {
+        id: p.id,
+        name: p.name,
+        points: currentPoints[p.id] !== undefined ? currentPoints[p.id] : 1000,
+        ranks: roundRanksHistory[p.id] || {},
+        randomVal: state.randomSeedMap[p.id] || 0.5
+      };
+    });
+
+    standings.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return b.randomVal - a.randomVal;
+    });
+
+    return standings;
   }
 
-  function updateFinalRank(playerId, rankVal) {
-    if (!state.finalRound) return;
-    if (rankVal === "") delete state.finalRound.ranks[playerId];
-    else state.finalRound.ranks[playerId] = parseInt(rankVal);
-    saveData();
-    updateResultsSubmitButtonState();
-  }
-
-  /* --- ④ 結果確認・順位表 ＆ 次ラウンド導線 --- */
+  /* --- ④ 結果確認・順位表 --- */
 
   function switchStandingsTab(tabKey) {
     state.currentStandingsTab = tabKey;
@@ -1155,6 +1250,9 @@
     const tbody = document.getElementById('standings-table-body');
     const infoBox = document.getElementById('standings-info-box');
     const nextActionContainer = document.getElementById('next-round-action-container');
+    const cardTitle = document.getElementById('standings-card-title');
+
+    cardTitle.innerText = `④ 大会順位表（太陽王式）`;
 
     let targetRound = state.qualifyingRounds;
     let showFinalCol = true;
@@ -1162,47 +1260,39 @@
 
     if (mode === 'latest') {
       infoBox.className = "info-box";
-      infoBox.innerHTML = `<b>【最新成績】</b> 予選のタイブレーカー（OMW% / GW% / OGW%）および完全同点時のランダム抽選を含めた最新の順位表です。`;
+      infoBox.innerHTML = `<b>【最新順位表】</b> 現在のポイントによる順位表です。`;
       targetRound = state.qualifyingRounds;
       showFinalCol = true;
     } else if (mode === 'final') {
       infoBox.className = "info-box final-info";
-      infoBox.innerHTML = `<b>【大会 最終結果】</b> 予選結果および決勝卓を含めた最終順位表です。`;
+      infoBox.innerHTML = `<b>【大会 最終結果】</b> 最終の順位表です。`;
       targetRound = state.qualifyingRounds;
       showFinalCol = true;
     } else {
       const rNum = parseInt(mode);
       infoBox.className = "info-box";
-      infoBox.innerHTML = `<b>【予選 第 ${rNum} ラウンド 終了時点】</b> の順位表を表示しています。`;
+      infoBox.innerHTML = `<b>【予選 第 ${rNum} ラウンド 終了時点】</b> の順位表です。`;
       targetRound = rNum;
       showFinalCol = false;
       isQualifyingFinished = false; 
     }
 
-    const standings = calculateQualifyingStandings(targetRound);
+    const standings = calculateStandingsUpToRound(targetRound);
 
     let headerHtml = `<th class="text-center" style="width:35px;">順位</th>
       <th>名前</th>
-      <th class="text-center">Pt</th>
-      <th class="text-center">OMW%</th>
-      <th class="text-center">GW%</th>
-      <th class="text-center">OGW%</th>`;
+      <th class="text-center">保有ポイント</th>`;
     
-    if (mode === 'latest' || mode === 'final') {
-      for (let r = 1; r <= state.qualifyingRounds; r++) {
-        headerHtml += `<th class="text-center">R${r}</th>`;
-      }
-    } else {
-      for (let r = 1; r <= targetRound; r++) {
-        headerHtml += `<th class="text-center">R${r}</th>`;
-      }
+    const maxR = (mode === 'latest' || mode === 'final') ? state.qualifyingRounds : targetRound;
+    for (let r = 1; r <= maxR; r++) {
+      headerHtml += `<th class="text-center">R${r}</th>`;
     }
 
     if (showFinalCol) headerHtml += `<th class="text-center final-th">🏆決勝</th>`;
     headerRow.innerHTML = headerHtml;
 
     if (standings.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:#888;">登録者なし</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#888;">登録者なし</td></tr>`;
       nextActionContainer.innerHTML = "";
       return;
     }
@@ -1213,10 +1303,15 @@
       let finalResultStr = "-";
       let isWinner = false;
 
-      if (state.finalRound && state.finalRound.ranks[p.id]) {
-        const fRank = state.finalRound.ranks[p.id];
-        finalResultStr = `${fRank}位`;
-        if (fRank === 1) isWinner = true;
+      if (state.finalRound && state.finalRound.resultsLocked) {
+        if (state.finalRound.isDraw) {
+          finalResultStr = "引分";
+        } else if (state.finalRound.winnerId === p.id) {
+          finalResultStr = "優勝";
+          isWinner = true;
+        } else if (state.finalRound.playerIds && state.finalRound.playerIds.includes(p.id)) {
+          finalResultStr = "敗退";
+        }
       } else if (isTop4 && isQualifyingFinished) {
         finalResultStr = "進出";
       }
@@ -1231,14 +1326,10 @@
           ${(showFinalCol && isWinner) ? '<span class="badge-winner">🏆</span>' : ''}
           ${(shouldHighlightTop4 && !isWinner) ? '<span class="badge-top4">Top4</span>' : ''}
         </td>
-        <td class="text-center"><strong>${p.totalPts}</strong></td>
-        <td class="text-center">${p.omwStr}</td>
-        <td class="text-center">${p.gwStr}</td>
-        <td class="text-center">${p.ogwStr}</td>`;
+        <td class="text-center" style="font-size:0.9rem;"><strong>${p.points} pt</strong></td>`;
       
-      const maxR = (mode === 'latest' || mode === 'final') ? state.qualifyingRounds : targetRound;
       for (let r = 1; r <= maxR; r++) {
-        html += `<td class="text-center">${p.ranks[r]}</td>`;
+        html += `<td class="text-center">${p.ranks[r] || "-"}</td>`;
       }
 
       if (showFinalCol) {
@@ -1275,112 +1366,7 @@
     goToStep(2, true);
   }
 
-  /* --- タイブレーカー計算ロジック --- */
-  function calculateQualifyingStandings(targetRound = state.qualifyingRounds) {
-    const statsMap = {};
-    state.players.forEach(p => {
-      if (state.randomSeedMap[p.id] === undefined) {
-        state.randomSeedMap[p.id] = Math.random();
-      }
-
-      statsMap[p.id] = {
-        id: p.id,
-        name: p.name,
-        totalPts: 0,
-        matchesPlayed: 0,
-        matchWinsVal: 0,
-        gameWinsVal: 0,
-        gameTotalVal: 0,
-        matchWinPct: 0,
-        gameWinPct: 0,
-        omw: 0,
-        ogw: 0,
-        omwStr: "33.3%",
-        gwStr: "0.0%",
-        ogwStr: "33.3%",
-        ranks: {},
-        lastRank: 99,
-        randomVal: state.randomSeedMap[p.id],
-        opponents: []
-      };
-      for (let r = 1; r <= state.qualifyingRounds; r++) { statsMap[p.id].ranks[r] = "-"; }
-    });
-
-    for (let r = 1; r <= targetRound; r++) {
-      const roundData = state.rounds[r];
-      if (roundData && roundData.tables) {
-        roundData.tables.forEach(t => {
-          const tableSize = t.playerIds.length;
-          t.playerIds.forEach(pId => {
-            if (!statsMap[pId]) return;
-            const rank = t.ranks[pId];
-            if (rank) {
-              statsMap[pId].ranks[r] = `${rank}位`;
-              statsMap[pId].lastRank = rank;
-              const pts = POINTS_MAP[rank] || 0;
-              statsMap[pId].totalPts += pts;
-              statsMap[pId].matchesPlayed += 1;
-
-              const gWin = (tableSize > 1) ? (tableSize - rank) / (tableSize - 1) : 1;
-              statsMap[pId].gameWinsVal += gWin;
-              statsMap[pId].gameTotalVal += 1;
-
-              const opponentsInTable = t.playerIds.filter(id => id !== pId);
-              statsMap[pId].opponents.push(...opponentsInTable);
-            }
-          });
-        });
-      }
-    }
-
-    Object.values(statsMap).forEach(p => {
-      const maxPossiblePts = p.matchesPlayed * 4;
-      p.matchWinPct = maxPossiblePts > 0 ? p.totalPts / maxPossiblePts : 0.333;
-      if (p.matchWinPct < 0.33) p.matchWinPct = 0.33;
-
-      p.gameWinPct = p.gameTotalVal > 0 ? p.gameWinsVal / p.gameTotalVal : 0.333;
-      if (p.gameWinPct < 0.33) p.gameWinPct = 0.33;
-
-      p.gwStr = (p.gameWinPct * 100).toFixed(1) + "%";
-    });
-
-    Object.values(statsMap).forEach(p => {
-      if (p.opponents.length > 0) {
-        let totalOpponentMW = 0;
-        let totalOpponentGW = 0;
-        p.opponents.forEach(oppId => {
-          if (statsMap[oppId]) {
-            totalOpponentMW += statsMap[oppId].matchWinPct;
-            totalOpponentGW += statsMap[oppId].gameWinPct;
-          }
-        });
-        p.omw = totalOpponentMW / p.opponents.length;
-        p.ogw = totalOpponentGW / p.opponents.length;
-      } else {
-        p.omw = 0.333;
-        p.ogw = 0.333;
-      }
-
-      if (p.omw < 0.33) p.omw = 0.33;
-      if (p.ogw < 0.33) p.ogw = 0.33;
-
-      p.omwStr = (p.omw * 100).toFixed(1) + "%";
-      p.ogwStr = (p.ogw * 100).toFixed(1) + "%";
-    });
-
-    const standings = Object.values(statsMap);
-    standings.sort((a, b) => {
-      if (b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
-      if (b.omw !== a.omw) return b.omw - a.omw;
-      if (b.gameWinPct !== a.gameWinPct) return b.gameWinPct - a.gameWinPct;
-      if (b.ogw !== a.ogw) return b.ogw - a.ogw;
-      if (a.lastRank !== b.lastRank) return a.lastRank - b.lastRank;
-      return b.randomVal - a.randomVal;
-    });
-    return standings;
-  }
-
-  /* --- ⑤ 管理機能（JSONバックアップ / リストア対応） --- */
+  /* --- ⑤ 管理機能 --- */
 
   function downloadBackupJSON() {
     if (state.players.length === 0) { alert("バックアップするデータがありません。"); return; }
@@ -1389,7 +1375,7 @@
     const link = document.createElement("a");
     link.setAttribute("href", dataStr);
     const dateStr = new Date().toISOString().slice(0,19).replace(/[-T:]/g, "");
-    link.setAttribute("download", `EDH_大会データバックアップ_${dateStr}.json`);
+    link.setAttribute("download", `EDH_TournamentSupport_Backup_${dateStr}.json`);
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
     showToast("大会データのJSONバックアップを出力しました");
   }
@@ -1409,14 +1395,15 @@
         const restoredState = JSON.parse(e.target.result);
 
         if (!restoredState || !restoredState.players) {
-          alert("有効なEDH大会データのJSON構造ではありません。");
+          alert("有効な大会データのJSON構造ではありません。");
           return;
         }
 
-        if (confirm(`バックアップから ${restoredState.players.length} 名の参加者データおよび大会進行状況を検出しました。\nリストアを実行して状態を復元しますか？`)) {
+        if (confirm(`バックアップから ${restoredState.players.length} 名の参加者データを検出しました。リストアを実行しますか？`)) {
           state.currentStep = restoredState.currentStep || 1;
           state.currentRound = restoredState.currentRound || 1;
           state.qualifyingRounds = restoredState.qualifyingRounds || 3;
+          state.tournamentSystem = "commander_god";
           state.players = restoredState.players || [];
           state.rounds = restoredState.rounds || {};
           state.finalRound = restoredState.finalRound || null;
@@ -1433,7 +1420,7 @@
           fileInput.value = "";
         }
       } catch (err) {
-        alert("JSONファイルの解析に失敗しました。正しいファイルか確認してください。");
+        alert("JSONファイルの解析に失敗しました。");
       }
     };
 
@@ -1462,7 +1449,7 @@
     let nextId = state.players.length > 0 ? Math.max(...state.players.map(p => p.id)) + 1 : 1;
     for (let i = 1; i <= count; i++) {
       if (state.players.length >= 64) break;
-      state.players.push({ id: nextId++, name: `サンプル選手 ${i}` });
+      state.players.push({ id: nextId++, name: `サンプル選手 ${i}`, points: 1000 });
     }
     saveData();
     renderPlayerList();
