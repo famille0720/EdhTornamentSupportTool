@@ -1,0 +1,2 @@
+# EdhTornamentSupportTool
+EDHトーナメントサポートツール
